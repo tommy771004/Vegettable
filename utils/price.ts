@@ -23,15 +23,15 @@ export function estimateRetailPrice(wholesalePrice: number): number {
  * 以當前平均價與近三年歷史平均價的比率來判斷
  * ratio < 0.7  → very-cheap (紅色，當令便宜)
  * ratio < 0.9  → cheap (淺紅，相對便宜)
- * ratio < 1.15 → normal-expensive (淺藍，略偏貴)
+ * ratio < 1.15 → normal (淺藍，略偏貴)
  * ratio >= 1.15 → expensive (藍色，偏貴)
  */
 export function calcPriceLevel(currentAvg: number, historicalAvg: number): PriceLevel {
-  if (historicalAvg <= 0) return 'normal-expensive';
+  if (historicalAvg <= 0) return 'normal';
   const ratio = currentAvg / historicalAvg;
   if (ratio < 0.7) return 'very-cheap';
   if (ratio < 0.9) return 'cheap';
-  if (ratio < 1.15) return 'normal-expensive';
+  if (ratio < 1.15) return 'normal';
   return 'expensive';
 }
 
