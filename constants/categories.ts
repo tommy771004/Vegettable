@@ -96,6 +96,6 @@ export const VEGETABLE_CODE_CATEGORY: Record<string, VegetableSubCategory> = {
 export const PRICE_LEVEL_LABELS: Record<string, string> = {
   'very-cheap': '當令便宜',
   'cheap': '相對便宜',
-  'normal-expensive': '略偏貴',
+  'normal': '略偏貴',
   'expensive': '相對偏貴',
 };

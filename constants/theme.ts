@@ -19,14 +19,14 @@ export const Colors = {
   priceLevel: {
     'very-cheap': '#D32F2F',      // 紅 — 當令便宜
     'cheap': '#FF8A80',           // 淺紅 — 相對便宜
-    'normal-expensive': '#82B1FF', // 淺藍 — 略偏貴
+    'normal': '#82B1FF', // 淺藍 — 略偏貴
     'expensive': '#1565C0',        // 藍 — 偏貴
   },
 
   priceLevelBg: {
     'very-cheap': 'rgba(211, 47, 47, 0.10)',
     'cheap': 'rgba(255, 138, 128, 0.10)',
-    'normal-expensive': 'rgba(130, 177, 255, 0.10)',
+    'normal': 'rgba(130, 177, 255, 0.10)',
     'expensive': 'rgba(21, 101, 192, 0.10)',
   },
 

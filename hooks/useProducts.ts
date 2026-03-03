@@ -49,7 +49,7 @@ export function useProducts() {
       const bFav = favorites.includes(b.cropCode) ? -1 : 0;
       if (aFav !== bFav) return aFav - bFav;
       // 再按價格等級排序（便宜的在前）
-      const levelOrder = { 'very-cheap': 0, 'cheap': 1, 'normal-expensive': 2, 'expensive': 3 };
+      const levelOrder = { 'very-cheap': 0, 'cheap': 1, 'normal': 2, 'expensive': 3 };
       return levelOrder[a.priceLevel] - levelOrder[b.priceLevel];
     });
 

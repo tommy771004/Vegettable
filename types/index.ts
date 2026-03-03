@@ -1,32 +1,4 @@
-/** 農產品交易行情 API 回傳的原始資料 */
-export interface RawProductData {
-  交易日期: string;
-  作物代號: string;
-  作物名稱: string;
-  市場代號: string;
-  市場名稱: string;
-  上價: number;
-  中價: number;
-  下價: number;
-  平均價: number;
-  交易量: number;
-}
-
-/** 整理後的產品資料 */
-export interface Product {
-  id: string;
-  cropCode: string;
-  cropName: string;
-  avgPrice: number;
-  highPrice: number;
-  midPrice: number;
-  lowPrice: number;
-  volume: number;
-  date: string;
-  marketName: string;
-}
-
-/** 聚合後的產品摘要（全市場平均） */
+/** 聚合後的產品摘要（全市場平均）— 由 .NET 後端回傳 */
 export interface ProductSummary {
   cropCode: string;
   cropName: string;
@@ -54,7 +26,7 @@ export interface MonthlyPrice {
 }
 
 /** 價格等級：相對歷史便宜到偏貴 */
-export type PriceLevel = 'very-cheap' | 'cheap' | 'normal-expensive' | 'expensive';
+export type PriceLevel = 'very-cheap' | 'cheap' | 'normal' | 'expensive';
 
 /** 價格趨勢 */
 export type PriceTrend = 'up' | 'down' | 'stable';

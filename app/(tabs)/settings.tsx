@@ -83,7 +83,7 @@ export default function SettingsScreen() {
             </View>
           </View>
           <View style={styles.levelRow}>
-            <View style={[styles.levelDot, { backgroundColor: Colors.priceLevel['normal-expensive'] }]} />
+            <View style={[styles.levelDot, { backgroundColor: Colors.priceLevel['normal'] }]} />
             <View style={styles.levelInfo}>
               <Text style={styles.levelLabel}>略偏貴</Text>
               <Text style={styles.levelDesc}>目前均價接近或略高於歷史均價</Text>
