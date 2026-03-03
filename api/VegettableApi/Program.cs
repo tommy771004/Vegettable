@@ -18,7 +18,10 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Memory Cache (快取農業部回傳資料，避免重複呼叫)
-builder.Services.AddMemoryCache();
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 256; // 最多快取 256 筆查詢結果
+});
 
 // HttpClient for MOA Open Data
 builder.Services.AddHttpClient<IMoaApiService, MoaApiService>(client =>
@@ -61,5 +64,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 app.MapControllers();
+
+// Health Check — 前端可用於偵測後端是否存活
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "healthy",
+    timestamp = DateTimeOffset.UtcNow,
+    version = "1.0.0",
+}));
 
 app.Run();

@@ -1,3 +1,5 @@
+using System.Globalization;
+using Microsoft.Extensions.Logging;
 using VegettableApi.Models;
 
 namespace VegettableApi.Services;
@@ -27,8 +29,8 @@ public class ProductService : IProductService
 
         await Task.WhenAll(recentTask, historicalTask);
 
-        var recentData = recentTask.Result;
-        var historicalAvg = historicalTask.Result;
+        var recentData = await recentTask;
+        var historicalAvg = await historicalTask;
 
         var summaries = AggregateToSummaries(recentData, historicalAvg);
 
@@ -55,11 +57,13 @@ public class ProductService : IProductService
         // 每日聚合
         var dailyPrices = AggregateDailyPrices(recentData);
 
-        // 取近三年月均價
-        var monthlyPrices = await FetchMonthlyPricesAsync(cropName);
+        // 並行取得月均價與歷史均價
+        var monthlyTask = FetchMonthlyPricesAsync(cropName);
+        var historicalTask = FetchHistoricalAverageForCropAsync(cropName);
+        await Task.WhenAll(monthlyTask, historicalTask);
 
-        // 歷史同月均價
-        var historicalAvg = await FetchHistoricalAverageForCropAsync(cropName);
+        var monthlyPrices = await monthlyTask;
+        var historicalAvg = await historicalTask;
 
         // 計算當前均價
         decimal avgPrice = dailyPrices.Count > 0
@@ -179,44 +183,75 @@ public class ProductService : IProductService
         return allData.Count > 0 ? Math.Round(allData.Average(d => d.AvgPrice), 1) : 0;
     }
 
+    /// <summary>
+    /// 批次取得近三年月均價 — 以「年」為單位並行取得，避免逐月 N+1 呼叫
+    /// </summary>
     private async Task<List<MonthlyPriceDto>> FetchMonthlyPricesAsync(string cropName)
     {
         var now = DateTime.Today;
-        var monthlyPrices = new List<MonthlyPriceDto>();
 
-        // 取近三年每月資料 (從三年前到現在)
+        // 以年為單位並行取得（共 4 次呼叫：近三年 + 今年）
+        var yearTasks = new List<(int Year, Task<List<MoaRawData>> Task)>();
         for (int y = 3; y >= 0; y--)
         {
-            var yearDate = y == 0 ? now : now.AddYears(-y);
-            int maxMonth = y == 0 ? now.Month : 12;
+            var targetYear = now.AddYears(-y).Year;
+            var yearStart = new DateTime(targetYear, 1, 1);
+            var yearEnd = y == 0
+                ? new DateTime(targetYear, now.Month, DateTime.DaysInMonth(targetYear, now.Month))
+                : new DateTime(targetYear, 12, 31);
 
-            for (int m = 1; m <= maxMonth; m++)
+            yearTasks.Add((targetYear, _moaApi.FetchFarmTransDataAsync(yearStart, yearEnd, cropName: cropName, top: 20000)));
+        }
+
+        try
+        {
+            await Task.WhenAll(yearTasks.Select(t => t.Task));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "部分年度資料取得失敗: {CropName}", cropName);
+        }
+
+        var monthlyPrices = new List<MonthlyPriceDto>();
+
+        foreach (var (year, task) in yearTasks)
+        {
+            if (task.IsFaulted) continue;
+
+            List<MoaRawData> yearData;
+            try { yearData = await task; }
+            catch { continue; }
+
+            // 將整年資料依月份分組聚合
+            var byMonth = yearData
+                .Where(d => d.AvgPrice > 0)
+                .GroupBy(d => ParseMonth(d.TransDate))
+                .Where(g => g.Key > 0)
+                .OrderBy(g => g.Key);
+
+            foreach (var monthGroup in byMonth)
             {
-                try
+                monthlyPrices.Add(new MonthlyPriceDto
                 {
-                    var monthStart = new DateTime(yearDate.Year, m, 1);
-                    var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-                    var data = await _moaApi.FetchFarmTransDataAsync(monthStart, monthEnd, cropName: cropName, top: 5000);
-
-                    var valid = data.Where(d => d.AvgPrice > 0).ToList();
-                    if (valid.Count > 0)
-                    {
-                        monthlyPrices.Add(new MonthlyPriceDto
-                        {
-                            Month = $"{yearDate.Year}/{m:D2}",
-                            AvgPrice = Math.Round(valid.Average(d => d.AvgPrice), 1),
-                            Volume = Math.Round(valid.Sum(d => d.Volume), 0),
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to fetch monthly data for {CropName} {Year}/{Month}", cropName, yearDate.Year, m);
-                }
+                    Month = $"{year}/{monthGroup.Key:D2}",
+                    AvgPrice = Math.Round(monthGroup.Average(d => d.AvgPrice), 1),
+                    Volume = Math.Round(monthGroup.Sum(d => d.Volume), 0),
+                });
             }
         }
 
         return monthlyPrices;
+    }
+
+    /// <summary>
+    /// 從民國年日期字串 (如 "112.03.15") 解析出月份
+    /// </summary>
+    private static int ParseMonth(string rocDate)
+    {
+        var parts = rocDate.Split('.');
+        if (parts.Length >= 2 && int.TryParse(parts[1], out var month))
+            return month;
+        return 0;
     }
 
     private List<ProductSummaryDto> AggregateToSummaries(
@@ -281,8 +316,24 @@ public class ProductService : IProductService
                 AvgPrice = Math.Round(g.Average(i => i.AvgPrice), 1),
                 Volume = Math.Round(g.Sum(i => i.Volume), 0),
             })
-            .OrderBy(d => d.Date)
+            .OrderBy(d => ParseRocDateToSortKey(d.Date))
             .ToList();
+    }
+
+    /// <summary>
+    /// 將民國年日期 "112.03.15" 轉為可排序的整數 1120315
+    /// </summary>
+    private static int ParseRocDateToSortKey(string rocDate)
+    {
+        var parts = rocDate.Replace("/", ".").Split('.');
+        if (parts.Length >= 3 &&
+            int.TryParse(parts[0], out var y) &&
+            int.TryParse(parts[1], out var m) &&
+            int.TryParse(parts[2], out var d))
+        {
+            return y * 10000 + m * 100 + d;
+        }
+        return 0;
     }
 
     /// <summary>
