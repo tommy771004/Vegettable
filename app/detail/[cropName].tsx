@@ -36,6 +36,7 @@ export default function ProductDetailScreen() {
   const [dailyPrices, setDailyPrices] = useState<DailyPrice[]>([]);
   const [monthlyPrices, setMonthlyPrices] = useState<MonthlyPrice[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(true);
+  const [detailError, setDetailError] = useState(false);
 
   const product = allProducts.find((p) => p.cropName === cropName);
 
@@ -48,11 +49,13 @@ export default function ProductDetailScreen() {
   const loadDetail = async () => {
     try {
       setLoadingDetail(true);
+      setDetailError(false);
       const detail = await fetchProductDetail(cropName || '');
       setDailyPrices(detail.dailyPrices);
       setMonthlyPrices(detail.monthlyPrices);
     } catch {
-      // 使用產品摘要中的近期價格
+      setDetailError(true);
+      // 降級：使用列表頁已有的近期價格
       if (product) {
         setDailyPrices(product.recentPrices);
       }
@@ -194,10 +197,17 @@ export default function ProductDetailScreen() {
               <Text style={styles.chartLoadingText}>載入價格走勢...</Text>
             </View>
           ) : (
-            <DailyChart
-              data={dailyPrices.length > 0 ? dailyPrices : product.recentPrices}
-              title="近七日均價走勢 (元/公斤)"
-            />
+            <>
+              {detailError && (
+                <Text style={styles.chartFallbackHint}>
+                  詳細資料暫時無法取得，顯示近期概況
+                </Text>
+              )}
+              <DailyChart
+                data={dailyPrices.length > 0 ? dailyPrices : product.recentPrices}
+                title="近七日均價走勢 (元/公斤)"
+              />
+            </>
           )}
         </GlassCard>
 
@@ -335,6 +345,12 @@ const styles = StyleSheet.create({
   chartLoadingText: {
     fontSize: FontSize.sm,
     color: Colors.textTertiary,
+  },
+  chartFallbackHint: {
+    fontSize: FontSize.xs,
+    color: Colors.trend.up,
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
   },
   tipCard: {
     marginHorizontal: 0,
