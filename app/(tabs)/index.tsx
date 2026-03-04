@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
+  Text,
   FlatList,
   StyleSheet,
   RefreshControl,
@@ -9,18 +10,22 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassHeader } from '@/components/GlassHeader';
 import { CategoryFilter } from '@/components/CategoryFilter';
+import { MarketFilter } from '@/components/MarketFilter';
 import { ProductListItem } from '@/components/ProductListItem';
 import { LoadingView, ErrorView } from '@/components/LoadingView';
 import { useProducts } from '@/hooks/useProducts';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useSettings } from '@/hooks/useSettings';
-import { Colors, Spacing } from '@/constants/theme';
-import { ProductSummary } from '@/types';
+import { useOfflineCache } from '@/hooks/useOfflineCache';
+import { Colors, FontSize, Spacing } from '@/constants/theme';
+import { ProductSummary, Market } from '@/types';
+import { fetchMarkets } from '@/services/api';
 
 export default function HomeScreen() {
   const router = useRouter();
   const {
     products,
+    allProducts,
     loading,
     error,
     selectedCategory,
@@ -29,6 +34,34 @@ export default function HomeScreen() {
   } = useProducts();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { settings } = useSettings();
+  const { saveToCache, loadFromCache } = useOfflineCache();
+  const [markets, setMarkets] = useState<Market[]>([]);
+  const [selectedMarket, setSelectedMarket] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
+
+  // 載入市場清單
+  useEffect(() => {
+    fetchMarkets().then(setMarkets).catch(() => {});
+  }, []);
+
+  // 離線快取: 產品載入成功後存入快取
+  useEffect(() => {
+    if (allProducts.length > 0) {
+      saveToCache(allProducts);
+      setIsOffline(false);
+    }
+  }, [allProducts]);
+
+  // 離線快取: 載入失敗時嘗試讀取快取
+  useEffect(() => {
+    if (error && allProducts.length === 0) {
+      loadFromCache().then(({ products: cached }) => {
+        if (cached.length > 0) {
+          setIsOffline(true);
+        }
+      });
+    }
+  }, [error]);
 
   const navigateToDetail = (product: ProductSummary) => {
     router.push({
@@ -60,7 +93,7 @@ export default function HomeScreen() {
 
       {loading && products.length === 0 ? (
         <LoadingView />
-      ) : error ? (
+      ) : error && products.length === 0 ? (
         <ErrorView message={error} onRetry={refresh} />
       ) : (
         <FlatList
@@ -73,6 +106,18 @@ export default function HomeScreen() {
                 selected={selectedCategory}
                 onSelect={setSelectedCategory}
               />
+              {markets.length > 0 && (
+                <MarketFilter
+                  markets={markets}
+                  selected={selectedMarket}
+                  onSelect={setSelectedMarket}
+                />
+              )}
+              {isOffline && (
+                <Text style={styles.offlineHint}>
+                  離線模式 — 顯示上次快取的資料
+                </Text>
+              )}
             </View>
           }
           contentContainerStyle={styles.listContent}
@@ -97,6 +142,12 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     paddingVertical: Spacing.md,
+  },
+  offlineHint: {
+    textAlign: 'center',
+    fontSize: FontSize.xs,
+    color: Colors.trend.up,
+    paddingVertical: Spacing.xs,
   },
   listContent: {
     paddingBottom: 100,

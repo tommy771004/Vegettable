@@ -7,11 +7,17 @@ const SETTINGS_KEY = '@vegettable_settings';
 interface Settings {
   priceUnit: PriceUnit;
   showRetailPrice: boolean;
+  darkMode: 'system' | 'light' | 'dark';
+  language: 'zh-TW' | 'en' | 'vi' | 'id';
+  selectedMarket: string | null;
 }
 
 const DEFAULT_SETTINGS: Settings = {
   priceUnit: 'kg',
   showRetailPrice: false,
+  darkMode: 'system',
+  language: 'zh-TW',
+  selectedMarket: null,
 };
 
 export function useSettings() {

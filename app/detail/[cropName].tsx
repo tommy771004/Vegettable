@@ -17,13 +17,16 @@ import { PriceIndicator } from '@/components/PriceIndicator';
 import { TrendArrow } from '@/components/TrendArrow';
 import { DailyChart, MonthlyChart } from '@/components/PriceChart';
 import { LoadingView } from '@/components/LoadingView';
+import { ShareButton } from '@/components/ShareButton';
+import { PredictionCard } from '@/components/PredictionCard';
+import { RecipeCard } from '@/components/RecipeCard';
 import { useProducts } from '@/hooks/useProducts';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useSettings } from '@/hooks/useSettings';
-import { fetchProductDetail } from '@/services/api';
+import { fetchProductDetail, fetchPrediction, fetchRecipes } from '@/services/api';
 import { Colors, FontSize, Spacing, BorderRadius } from '@/constants/theme';
 import { convertPrice, estimateRetailPrice, formatPrice, getPriceUnitLabel } from '@/utils/price';
-import { DailyPrice, MonthlyPrice } from '@/types';
+import { DailyPrice, MonthlyPrice, PricePrediction, Recipe } from '@/types';
 
 export default function ProductDetailScreen() {
   const { cropName } = useLocalSearchParams<{ cropName: string }>();
@@ -37,12 +40,15 @@ export default function ProductDetailScreen() {
   const [monthlyPrices, setMonthlyPrices] = useState<MonthlyPrice[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(true);
   const [detailError, setDetailError] = useState(false);
+  const [prediction, setPrediction] = useState<PricePrediction | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
 
   const product = allProducts.find((p) => p.cropName === cropName);
 
   useEffect(() => {
     if (cropName) {
       loadDetail();
+      loadExtras();
     }
   }, [cropName]);
 
@@ -55,13 +61,21 @@ export default function ProductDetailScreen() {
       setMonthlyPrices(detail.monthlyPrices);
     } catch {
       setDetailError(true);
-      // 降級：使用列表頁已有的近期價格
       if (product) {
         setDailyPrices(product.recentPrices);
       }
     } finally {
       setLoadingDetail(false);
     }
+  };
+
+  const loadExtras = async () => {
+    const name = cropName || '';
+    // 並行載入預測和食譜（不阻塞主要內容）
+    Promise.all([
+      fetchPrediction(name).then(setPrediction).catch(() => {}),
+      fetchRecipes(name).then(setRecipes).catch(() => {}),
+    ]);
   };
 
   const openGoogleImages = () => {
@@ -119,6 +133,11 @@ export default function ProductDetailScreen() {
                 }
               />
             </TouchableOpacity>
+            <ShareButton
+              cropName={product.cropName}
+              avgPrice={product.avgPrice}
+              priceLevel={product.priceLevel}
+            />
             <TouchableOpacity onPress={openGoogleImages} style={styles.navButton}>
               <Ionicons name="image-outline" size={22} color={Colors.textTertiary} />
             </TouchableOpacity>
@@ -217,6 +236,12 @@ export default function ProductDetailScreen() {
             <MonthlyChart data={monthlyPrices} title="近三年月均價趨勢 (元/公斤)" />
           </GlassCard>
         )}
+
+        {/* AI 價格預測 */}
+        {prediction && <PredictionCard prediction={prediction} />}
+
+        {/* 食譜推薦 */}
+        {recipes.length > 0 && <RecipeCard recipes={recipes} />}
 
         {/* 使用提示 */}
         <GlassCard style={styles.tipCard}>

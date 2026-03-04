@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,36 @@ import {
   ScrollView,
   Linking,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassHeader } from '@/components/GlassHeader';
 import { GlassCard } from '@/components/GlassCard';
+import { AlertManager } from '@/components/AlertManager';
 import { useSettings } from '@/hooks/useSettings';
+import { useAlerts } from '@/hooks/useAlerts';
+import { useProducts } from '@/hooks/useProducts';
 import { Colors, FontSize, Spacing, BorderRadius } from '@/constants/theme';
+import { LANGUAGE_OPTIONS } from '@/i18n';
+import { Market } from '@/types';
+import { fetchMarkets } from '@/services/api';
+
+const DARK_MODE_OPTIONS = [
+  { key: 'system', label: '跟隨系統', icon: 'phone-portrait-outline' },
+  { key: 'light', label: '淺色', icon: 'sunny-outline' },
+  { key: 'dark', label: '深色', icon: 'moon-outline' },
+] as const;
 
 export default function SettingsScreen() {
-  const { settings, togglePriceUnit, toggleRetailPrice } = useSettings();
+  const router = useRouter();
+  const { settings, updateSettings, togglePriceUnit, toggleRetailPrice } = useSettings();
+  const { alerts, addAlert, removeAlert, toggleAlertActive } = useAlerts();
+  const { allProducts } = useProducts();
+  const [markets, setMarkets] = useState<Market[]>([]);
+
+  useEffect(() => {
+    fetchMarkets().then(setMarkets).catch(() => {});
+  }, []);
 
   return (
     <LinearGradient
@@ -52,9 +73,7 @@ export default function SettingsScreen() {
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>顯示零售參考價</Text>
-              <Text style={styles.settingDesc}>
-                以批發價 × 2.5 粗估零售價
-              </Text>
+              <Text style={styles.settingDesc}>以批發價 × 2.5 粗估零售價</Text>
             </View>
             <Switch
               value={settings.showRetailPrice}
@@ -64,6 +83,100 @@ export default function SettingsScreen() {
             />
           </View>
         </GlassCard>
+
+        {/* 預設市場 */}
+        <Text style={styles.sectionTitle}>預設市場</Text>
+        <GlassCard style={styles.card}>
+          <TouchableOpacity
+            onPress={() => updateSettings({ selectedMarket: null })}
+            style={[styles.marketItem, !settings.selectedMarket && styles.marketItemActive]}
+          >
+            <Ionicons name="globe-outline" size={16} color={!settings.selectedMarket ? Colors.primary : Colors.textTertiary} />
+            <Text style={[styles.marketText, !settings.selectedMarket && styles.marketTextActive]}>全台平均</Text>
+            {!settings.selectedMarket && <Ionicons name="checkmark" size={16} color={Colors.primary} />}
+          </TouchableOpacity>
+          {markets.slice(0, 10).map(m => (
+            <TouchableOpacity
+              key={m.marketCode}
+              onPress={() => updateSettings({ selectedMarket: m.marketName })}
+              style={[styles.marketItem, settings.selectedMarket === m.marketName && styles.marketItemActive]}
+            >
+              <Text style={[styles.marketText, settings.selectedMarket === m.marketName && styles.marketTextActive]}>
+                {m.marketName} ({m.region})
+              </Text>
+              {settings.selectedMarket === m.marketName && <Ionicons name="checkmark" size={16} color={Colors.primary} />}
+            </TouchableOpacity>
+          ))}
+        </GlassCard>
+
+        {/* 深色模式 */}
+        <Text style={styles.sectionTitle}>外觀</Text>
+        <GlassCard style={styles.card}>
+          <Text style={styles.settingLabel}>深色模式</Text>
+          <View style={styles.optionRow}>
+            {DARK_MODE_OPTIONS.map(opt => (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => updateSettings({ darkMode: opt.key })}
+                style={[styles.optionBtn, settings.darkMode === opt.key && styles.optionBtnActive]}
+              >
+                <Ionicons name={opt.icon as any} size={16} color={settings.darkMode === opt.key ? Colors.primary : Colors.textTertiary} />
+                <Text style={[styles.optionText, settings.darkMode === opt.key && styles.optionTextActive]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </GlassCard>
+
+        {/* 語言 */}
+        <Text style={styles.sectionTitle}>語言 Language</Text>
+        <GlassCard style={styles.card}>
+          {LANGUAGE_OPTIONS.map(lang => (
+            <TouchableOpacity
+              key={lang.key}
+              onPress={() => updateSettings({ language: lang.key as any })}
+              style={[styles.langItem, settings.language === lang.key && styles.langItemActive]}
+            >
+              <Text style={[styles.langText, settings.language === lang.key && styles.langTextActive]}>
+                {lang.label}
+              </Text>
+              {settings.language === lang.key && <Ionicons name="checkmark" size={16} color={Colors.primary} />}
+            </TouchableOpacity>
+          ))}
+        </GlassCard>
+
+        {/* 快捷入口 */}
+        <Text style={styles.sectionTitle}>更多功能</Text>
+        <GlassCard style={styles.card}>
+          <TouchableOpacity style={styles.featureRow} onPress={() => router.push('/seasonal')}>
+            <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
+            <Text style={styles.featureText}>當季蔬果日曆</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.featureRow} onPress={() => router.push('/compare')}>
+            <Ionicons name="git-compare-outline" size={20} color={Colors.primary} />
+            <Text style={styles.featureText}>價格比較器</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity style={styles.featureRow} onPress={() => router.push('/map')}>
+            <Ionicons name="map-outline" size={20} color={Colors.primary} />
+            <Text style={styles.featureText}>附近市場</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+          </TouchableOpacity>
+        </GlassCard>
+
+        {/* 價格警示 */}
+        <Text style={styles.sectionTitle}>價格警示</Text>
+        <AlertManager
+          alerts={alerts}
+          products={allProducts}
+          onAddAlert={addAlert}
+          onDeleteAlert={removeAlert}
+          onToggleAlert={toggleAlertActive}
+        />
 
         {/* 價格等級說明 */}
         <Text style={styles.sectionTitle}>價格等級說明</Text>
@@ -122,7 +235,7 @@ export default function SettingsScreen() {
         </GlassCard>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>當令蔬果生鮮 v1.0.0</Text>
+          <Text style={styles.footerText}>當令蔬果生鮮 v2.0.0</Text>
           <Text style={styles.footerText}>資料來源：農業部 · 農糧署</Text>
         </View>
       </ScrollView>
@@ -131,13 +244,8 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: Spacing.lg,
-    paddingBottom: 120,
-  },
+  container: { flex: 1 },
+  scrollContent: { padding: Spacing.lg, paddingBottom: 120 },
   sectionTitle: {
     fontSize: FontSize.sm,
     fontWeight: '600',
@@ -148,28 +256,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     marginLeft: Spacing.xs,
   },
-  card: {
-    marginHorizontal: 0,
-  },
+  card: { marginHorizontal: 0 },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  settingInfo: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  settingLabel: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  settingDesc: {
-    fontSize: FontSize.sm,
-    color: Colors.textTertiary,
-    marginTop: 2,
-  },
+  settingInfo: { flex: 1, marginRight: Spacing.md },
+  settingLabel: { fontSize: FontSize.md, fontWeight: '600', color: Colors.text },
+  settingDesc: { fontSize: FontSize.sm, color: Colors.textTertiary, marginTop: 2 },
   toggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -179,68 +274,62 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.pill,
   },
-  toggleText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  divider: {
-    height: 0.5,
-    backgroundColor: Colors.divider,
-    marginVertical: Spacing.md,
-  },
-  levelRow: {
+  toggleText: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.primary },
+  divider: { height: 0.5, backgroundColor: Colors.divider, marginVertical: Spacing.md },
+  optionRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
+  optionBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.xs,
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderWidth: 0.5,
+    borderColor: 'transparent',
   },
-  levelDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  levelInfo: {
-    flex: 1,
-  },
-  levelLabel: {
-    fontSize: FontSize.md,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  levelDesc: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    marginTop: 1,
-  },
-  aboutText: {
-    fontSize: FontSize.md,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-  },
-  disclaimer: {
-    fontSize: FontSize.sm,
-    color: Colors.textTertiary,
-    lineHeight: 20,
-  },
-  linkRow: {
+  optionBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primarySurface },
+  optionText: { fontSize: FontSize.sm, color: Colors.textTertiary },
+  optionTextActive: { color: Colors.primary, fontWeight: '600' },
+  marketItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.divider,
   },
-  linkText: {
-    fontSize: FontSize.md,
-    color: Colors.primary,
-    fontWeight: '500',
-    flex: 1,
-  },
-  footer: {
+  marketItemActive: { backgroundColor: Colors.primarySurface, marginHorizontal: -Spacing.lg, paddingHorizontal: Spacing.lg, borderRadius: BorderRadius.sm },
+  marketText: { flex: 1, fontSize: FontSize.md, color: Colors.textSecondary },
+  marketTextActive: { color: Colors.primary, fontWeight: '600' },
+  langItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.xxxl,
-    gap: Spacing.xs,
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.divider,
   },
-  footerText: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
+  langItemActive: { backgroundColor: Colors.primarySurface, marginHorizontal: -Spacing.lg, paddingHorizontal: Spacing.lg, borderRadius: BorderRadius.sm },
+  langText: { fontSize: FontSize.md, color: Colors.textSecondary },
+  langTextActive: { color: Colors.primary, fontWeight: '600' },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
+  featureText: { flex: 1, fontSize: FontSize.md, color: Colors.text, fontWeight: '500' },
+  levelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.xs },
+  levelDot: { width: 12, height: 12, borderRadius: 6 },
+  levelInfo: { flex: 1 },
+  levelLabel: { fontSize: FontSize.md, fontWeight: '600', color: Colors.text },
+  levelDesc: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 1 },
+  aboutText: { fontSize: FontSize.md, color: Colors.textSecondary, lineHeight: 22 },
+  disclaimer: { fontSize: FontSize.sm, color: Colors.textTertiary, lineHeight: 20 },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  linkText: { fontSize: FontSize.md, color: Colors.primary, fontWeight: '500', flex: 1 },
+  footer: { alignItems: 'center', marginTop: Spacing.xxxl, gap: Spacing.xs },
+  footerText: { fontSize: FontSize.xs, color: Colors.textTertiary },
 });
