@@ -51,9 +51,70 @@ export type CropCategory =
 /** 價格單位 */
 export type PriceUnit = 'kg' | 'catty';  // 公斤 / 台斤
 
+/** 市場資訊 */
+export interface Market {
+  marketCode: string;
+  marketName: string;
+  region: string;
+}
+
+/** 市場行情 */
+export interface MarketPrice {
+  marketName: string;
+  cropName: string;
+  avgPrice: number;
+  upperPrice: number;
+  lowerPrice: number;
+  volume: number;
+  transDate: string;
+}
+
+/** 價格警示 */
+export interface PriceAlert {
+  id: number;
+  cropName: string;
+  targetPrice: number;
+  condition: 'below' | 'above';
+  isActive: boolean;
+  lastTriggeredAt: string | null;
+  createdAt: string;
+}
+
+/** AI 價格預測 */
+export interface PricePrediction {
+  cropName: string;
+  currentPrice: number;
+  predictedPrice: number;
+  changePercent: number;
+  direction: 'up' | 'down' | 'stable';
+  confidence: number;
+  reasoning: string;
+}
+
+/** 季節性資訊 */
+export interface SeasonalInfo {
+  cropName: string;
+  category: string;
+  peakMonths: number[];
+  isInSeason: boolean;
+  seasonNote: string;
+}
+
+/** 食譜 */
+export interface Recipe {
+  name: string;
+  description: string;
+  ingredients: string[];
+  difficulty: 'easy' | 'medium' | 'hard';
+  cookTimeMinutes: number;
+}
+
 /** 設定 */
 export interface AppSettings {
   priceUnit: PriceUnit;
   showRetailPrice: boolean;
   favorites: string[];  // cropCode[]
+  darkMode: 'system' | 'light' | 'dark';
+  language: 'zh-TW' | 'en' | 'vi' | 'id';
+  selectedMarket: string | null; // null = 全台平均
 }

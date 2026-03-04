@@ -1,6 +1,6 @@
 {
   "name": "vegettable",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "當令蔬果生鮮 -- 查詢台灣當季蔬菜、水果、漁產、肉品、花卉、白米的平均批發價",
   "main": "expo-router/entry",
   "scripts": {

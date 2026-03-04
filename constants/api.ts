@@ -32,4 +32,20 @@ export const API_ENDPOINTS = {
   categories: '/api/categories',
   /** 別名反查 */
   aliasLookup: '/api/aliases/lookup',
+  /** 市場清單 */
+  markets: '/api/markets',
+  /** 市場行情（需附加 /{marketName}/prices） */
+  marketPrices: '/api/markets',
+  /** 市場比較（需附加 /compare/{cropName}） */
+  marketCompare: '/api/markets/compare',
+  /** 價格警示 */
+  alerts: '/api/alerts',
+  /** AI 預測（需附加 /{cropName}） */
+  prediction: '/api/prediction',
+  /** 季節性資訊 */
+  seasonal: '/api/prediction/seasonal',
+  /** 食譜推薦（需附加 /{cropName}/recipes） */
+  recipes: '/api/prediction',
+  /** 健康檢查 */
+  health: '/health',
 } as const;
