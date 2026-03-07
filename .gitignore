@@ -1,39 +1,39 @@
-# Dependencies
-node_modules/
+# ─── Android ─────────────────────────────────
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/*.iml
+android/.idea/
+android/captures/
 
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
+# ─── iOS ──────────────────────────────────────
+ios/Vegettable.xcodeproj/xcuserdata/
+ios/Vegettable.xcodeproj/project.xcworkspace/
+ios/Vegettable.xcworkspace/xcuserdata/
+ios/build/
+ios/DerivedData/
+ios/Pods/
+ios/Podfile.lock
 
-# Native builds
-ios/
-android/
+# ─── .NET Backend ─────────────────────────────
+api/VegettableApi/bin/
+api/VegettableApi/obj/
+api/VegettableApi/*.db
 
-# Environment
+# ─── Environment ──────────────────────────────
 .env
 .env.local
 .env.production
 
-# Editor
+# ─── Editor ───────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
+*.suo
+*.user
 
-# OS
+# ─── OS ───────────────────────────────────────
 .DS_Store
 Thumbs.db
-
-# Debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# TypeScript
-*.tsbuildinfo
-
-# Package lock (allow npm or yarn, not both)
-# package-lock.json
-# yarn.lock
