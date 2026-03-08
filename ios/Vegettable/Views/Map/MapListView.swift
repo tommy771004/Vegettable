@@ -15,16 +15,14 @@ struct MapListView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
-                           startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
+            LiquidGlassBackground()
 
             VStack(spacing: 0) {
                 // 區域篩選
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(regions, id: \.self) { region in
-                            CategoryChip(
+                            LiquidChip(
                                 label: region,
                                 isSelected: (selectedRegion ?? "全部") == region || (selectedRegion == nil && region == "全部"),
                                 action: {
@@ -33,44 +31,62 @@ struct MapListView: View {
                             )
                         }
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 16)
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
 
-                List {
-                    ForEach(filteredMarkets) { market in
-                        GlassCard {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(market.name + "果菜批發市場")
-                                        .font(.headline)
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(filteredMarkets) { market in
+                            GlassCard {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(market.name + "果菜批發市場")
+                                            .font(.system(size: 17, weight: .semibold, design: .rounded))
 
-                                    Text(market.address)
-                                        .font(.caption)
-                                        .foregroundColor(AppColors.textSecondary)
+                                        Text(market.address)
+                                            .font(.system(size: 13, design: .rounded))
+                                            .foregroundColor(AppColors.textSecondary)
 
-                                    Text(market.region)
-                                        .font(.caption2)
-                                        .foregroundColor(AppColors.textTertiary)
+                                        Text(market.region)
+                                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 3)
+                                            .foregroundColor(AppColors.primary)
+                                            .background(
+                                                Capsule()
+                                                    .fill(AppColors.primary.opacity(0.1))
+                                            )
+                                    }
+
+                                    Spacer()
+
+                                    Button("導航") {
+                                        openMaps(market: market)
+                                    }
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 9)
+                                    .background(
+                                        Capsule()
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [AppColors.primary, AppColors.primaryLight],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                            )
+                                    )
+                                    .shadow(color: AppColors.primary.opacity(0.3), radius: 6, y: 2)
                                 }
-
-                                Spacer()
-
-                                Button("導航") {
-                                    openMaps(market: market)
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .tint(AppColors.primary)
-                                .controlSize(.small)
+                                .padding(18)
                             }
-                            .padding(16)
                         }
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                     }
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 24)
                 }
-                .listStyle(.plain)
             }
         }
         .navigationTitle("批發市場位置")

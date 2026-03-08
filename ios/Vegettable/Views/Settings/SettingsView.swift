@@ -6,22 +6,31 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
-                               startPoint: .top, endPoint: .bottom)
-                    .ignoresSafeArea()
+                LiquidGlassBackground()
 
                 ScrollView {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 14) {
 
                         // ─── 價格顯示 ───────────────────────
                         GlassCard {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Label("價格顯示", systemImage: "dollarsign.circle")
-                                    .font(.headline)
-                                    .foregroundColor(AppColors.primary)
+                            VStack(alignment: .leading, spacing: 14) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "dollarsign.circle.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [AppColors.primary, AppColors.primaryLight],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                    Text("價格顯示")
+                                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                }
 
                                 HStack {
                                     Text("價格單位")
+                                        .font(.system(size: 15, design: .rounded))
                                     Spacer()
                                     Picker("", selection: $settings.priceUnit) {
                                         Text("公斤").tag("kg")
@@ -31,57 +40,81 @@ struct SettingsView: View {
                                     .frame(width: 150)
                                 }
 
-                                Toggle("顯示估計零售價", isOn: $settings.showRetailPrice)
+                                Toggle(isOn: $settings.showRetailPrice) {
+                                    Text("顯示估計零售價")
+                                        .font(.system(size: 15, design: .rounded))
+                                }
+                                .tint(AppColors.primary)
                             }
-                            .padding(16)
+                            .padding(18)
                         }
 
                         // ─── 快捷功能 ───────────────────────
                         GlassCard {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Label("快捷功能", systemImage: "star.fill")
-                                    .font(.headline)
-                                    .foregroundColor(AppColors.primary)
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "star.circle.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [Color.orange, Color.yellow],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                    Text("快捷功能")
+                                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                }
 
                                 NavigationLink(destination: SeasonalView()) {
-                                    SettingsRow(icon: "calendar", title: "季節行事曆", color: .green)
+                                    SettingsRow(icon: "calendar.circle.fill", title: "季節行事曆", color: .green)
                                 }
 
                                 NavigationLink(destination: CompareView()) {
-                                    SettingsRow(icon: "chart.bar.xaxis", title: "市場比價", color: .blue)
+                                    SettingsRow(icon: "chart.bar.xaxis.ascending", title: "市場比價", color: .blue)
                                 }
 
                                 NavigationLink(destination: MapListView()) {
-                                    SettingsRow(icon: "map", title: "附近市場", color: .orange)
+                                    SettingsRow(icon: "map.circle.fill", title: "附近市場", color: .orange)
                                 }
                             }
-                            .padding(16)
+                            .padding(18)
                         }
 
                         // ─── 關於 ────────────────────────────
                         GlassCard {
                             VStack(alignment: .leading, spacing: 8) {
-                                Label("關於", systemImage: "info.circle")
-                                    .font(.headline)
-                                    .foregroundColor(AppColors.primary)
+                                HStack(spacing: 8) {
+                                    Image(systemName: "info.circle.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [Color.blue, Color.cyan],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                    Text("關於")
+                                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                }
 
                                 Text("資料來源：行政院農業委員會")
-                                    .font(.caption)
+                                    .font(.system(size: 13, design: .rounded))
                                     .foregroundColor(AppColors.textSecondary)
 
                                 Text("價格資料僅供參考，實際交易價格以市場為準")
-                                    .font(.caption2)
+                                    .font(.system(size: 12, design: .rounded))
                                     .foregroundColor(AppColors.textTertiary)
 
-                                Text("v2.0")
-                                    .font(.caption2)
+                                Text("v2.0 — Liquid Glass")
+                                    .font(.system(size: 12, weight: .medium, design: .rounded))
                                     .foregroundColor(AppColors.textTertiary)
                             }
-                            .padding(16)
+                            .padding(18)
                         }
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom, 24)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 100)
                 }
             }
             .navigationTitle("設定")
@@ -96,16 +129,27 @@ struct SettingsRow: View {
     let color: Color
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(color)
-                .frame(width: 24)
+                .font(.system(size: 22))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [color, color.opacity(0.7)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 28)
+
             Text(title)
+                .font(.system(size: 15, design: .rounded))
                 .foregroundColor(AppColors.textPrimary)
+
             Spacer()
+
             Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(AppColors.textTertiary)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(AppColors.textTertiary.opacity(0.6))
         }
         .padding(.vertical, 8)
     }

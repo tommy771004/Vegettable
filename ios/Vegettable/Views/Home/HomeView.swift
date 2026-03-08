@@ -10,62 +10,75 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
-                               startPoint: .top, endPoint: .bottom)
-                    .ignoresSafeArea()
+                // Liquid Glass 背景
+                LiquidGlassBackground()
 
                 VStack(spacing: 0) {
-                    // 分類選擇
+                    // 分類選擇 — 膠囊晶片
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(CropCategory.allCases, id: \.rawValue) { cat in
-                                CategoryChip(
+                                LiquidChip(
                                     label: cat.label,
                                     isSelected: selectedCategory == cat,
                                     action: {
-                                        selectedCategory = cat
+                                        withAnimation(.spring(response: 0.3)) {
+                                            selectedCategory = cat
+                                        }
                                         loadProducts()
                                     }
                                 )
                             }
                         }
-                        .padding(.horizontal)
+                        .padding(.horizontal, 16)
                     }
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 10)
 
                     // 產品列表
                     if isLoading && products.isEmpty {
                         Spacer()
-                        ProgressView("載入中…")
+                        ProgressView()
+                            .tint(AppColors.primary)
+                            .scaleEffect(1.2)
+                        Text("載入中…")
+                            .font(.system(size: 14, design: .rounded))
+                            .foregroundColor(AppColors.textTertiary)
+                            .padding(.top, 8)
                         Spacer()
                     } else if let error = errorMessage, products.isEmpty {
                         Spacer()
-                        VStack(spacing: 12) {
+                        VStack(spacing: 14) {
+                            Image(systemName: "wifi.exclamationmark")
+                                .font(.system(size: 40))
+                                .foregroundColor(AppColors.textTertiary)
                             Text(error)
+                                .font(.system(size: 14, design: .rounded))
                                 .foregroundColor(AppColors.textSecondary)
                             Button("重試") { loadProducts() }
                                 .buttonStyle(.borderedProminent)
                                 .tint(AppColors.primary)
+                                .clipShape(Capsule())
                         }
                         Spacer()
                     } else {
-                        List {
-                            ForEach(products) { product in
-                                NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
-                                    ProductRow(
-                                        product: product,
-                                        isFavorite: settings.isFavorite(product.cropCode),
-                                        priceUnit: settings.priceUnit,
-                                        showRetail: settings.showRetailPrice,
-                                        onFavorite: { settings.toggleFavorite(product.cropCode) }
-                                    )
+                        ScrollView {
+                            LazyVStack(spacing: 10) {
+                                ForEach(products) { product in
+                                    NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
+                                        ProductRow(
+                                            product: product,
+                                            isFavorite: settings.isFavorite(product.cropCode),
+                                            priceUnit: settings.priceUnit,
+                                            showRetail: settings.showRetailPrice,
+                                            onFavorite: { settings.toggleFavorite(product.cropCode) }
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
                                 }
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                             }
+                            .padding(.horizontal, 14)
+                            .padding(.bottom, 100) // 為浮動 Tab Bar 留空間
                         }
-                        .listStyle(.plain)
                         .refreshable { loadProducts() }
                     }
                 }
@@ -92,7 +105,6 @@ struct HomeView: View {
                 await MainActor.run {
                     isLoading = false
                     errorMessage = "載入失敗: \(error.localizedDescription)"
-                    // 使用快取
                     if let cached = settings.loadCachedProducts() {
                         products = cached
                         errorMessage = nil
@@ -103,7 +115,35 @@ struct HomeView: View {
     }
 }
 
-struct CategoryChip: View {
+// MARK: - Liquid Glass 背景
+struct LiquidGlassBackground: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [AppColors.background, AppColors.backgroundEnd],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            // 柔和光暈裝飾
+            Circle()
+                .fill(AppColors.primary.opacity(0.06))
+                .frame(width: 300, height: 300)
+                .blur(radius: 80)
+                .offset(x: -100, y: -200)
+
+            Circle()
+                .fill(Color.blue.opacity(0.04))
+                .frame(width: 250, height: 250)
+                .blur(radius: 70)
+                .offset(x: 120, y: 150)
+        }
+    }
+}
+
+// MARK: - Liquid Glass 膠囊晶片
+struct LiquidChip: View {
     let label: String
     let isSelected: Bool
     let action: () -> Void
@@ -111,13 +151,32 @@ struct CategoryChip: View {
     var body: some View {
         Button(action: action) {
             Text(label)
-                .font(.subheadline)
-                .fontWeight(isSelected ? .semibold : .regular)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(isSelected ? AppColors.primary : AppColors.glassBg)
+                .font(.system(size: 14, weight: isSelected ? .semibold : .regular, design: .rounded))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 9)
                 .foregroundColor(isSelected ? .white : AppColors.textPrimary)
-                .clipShape(Capsule())
+                .background(
+                    ZStack {
+                        if isSelected {
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [AppColors.primary, AppColors.primaryLight],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .shadow(color: AppColors.primary.opacity(0.3), radius: 8, y: 2)
+                        } else {
+                            Capsule()
+                                .fill(.ultraThinMaterial)
+                            Capsule()
+                                .fill(Color.white.opacity(0.4))
+                            Capsule()
+                                .strokeBorder(Color.white.opacity(0.5), lineWidth: 0.8)
+                        }
+                    }
+                )
         }
     }
 }

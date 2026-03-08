@@ -12,22 +12,26 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
-        android:paddingTop="48dp">
+        android:paddingTop="40dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="8dp">
 
         <ImageButton
             android:id="@+id/btn_back"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_revert" />
+            android:src="@android:drawable/ic_menu_revert"
+            android:contentDescription="返回" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/map_title"
-            android:textSize="24sp"
+            android:text="批發市場位置"
+            android:textSize="26sp"
             android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
             android:textColor="@color/primary_dark"
             android:layout_marginStart="8dp" />
     </LinearLayout>
@@ -36,13 +40,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:scrollbars="none"
-        android:paddingStart="12dp">
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="8dp">
 
         <com.google.android.material.chip.ChipGroup
             android:id="@+id/chip_group_region"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:singleSelection="true" />
+            app:singleSelection="true"
+            app:selectionRequired="true" />
     </HorizontalScrollView>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -50,6 +57,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:padding="12dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="24dp"
         android:clipToPadding="false" />
 </LinearLayout>

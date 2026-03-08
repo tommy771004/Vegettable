@@ -12,41 +12,54 @@ struct FavoritesView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
-                               startPoint: .top, endPoint: .bottom)
-                    .ignoresSafeArea()
+                LiquidGlassBackground()
 
                 if isLoading {
-                    ProgressView("載入中…")
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .tint(AppColors.primary)
+                            .scaleEffect(1.2)
+                        Text("載入中…")
+                            .font(.system(size: 14, design: .rounded))
+                            .foregroundColor(AppColors.textTertiary)
+                    }
                 } else if favoriteProducts.isEmpty {
-                    VStack(spacing: 8) {
+                    VStack(spacing: 12) {
                         Image(systemName: "heart.slash")
                             .font(.system(size: 48))
-                            .foregroundColor(AppColors.textTertiary)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [AppColors.textTertiary.opacity(0.6), AppColors.textTertiary],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
                         Text("尚未收藏任何產品")
+                            .font(.system(size: 15, design: .rounded))
                             .foregroundColor(AppColors.textSecondary)
                         Text("點擊 ♡ 可加入收藏")
-                            .font(.caption)
+                            .font(.system(size: 13, design: .rounded))
                             .foregroundColor(AppColors.textTertiary)
                     }
                 } else {
-                    List {
-                        ForEach(favoriteProducts) { product in
-                            NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
-                                ProductRow(
-                                    product: product,
-                                    isFavorite: true,
-                                    priceUnit: settings.priceUnit,
-                                    showRetail: settings.showRetailPrice,
-                                    onFavorite: { settings.toggleFavorite(product.cropCode) }
-                                )
+                    ScrollView {
+                        LazyVStack(spacing: 10) {
+                            ForEach(favoriteProducts) { product in
+                                NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
+                                    ProductRow(
+                                        product: product,
+                                        isFavorite: true,
+                                        priceUnit: settings.priceUnit,
+                                        showRetail: settings.showRetailPrice,
+                                        onFavorite: { settings.toggleFavorite(product.cropCode) }
+                                    )
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                         }
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 100)
                     }
-                    .listStyle(.plain)
                 }
             }
             .navigationTitle("收藏 (\(settings.favorites.count))")
@@ -56,7 +69,6 @@ struct FavoritesView: View {
     }
 
     private func loadProducts() {
-        // 先嘗試快取
         if let cached = settings.loadCachedProducts() {
             allProducts = cached
             return

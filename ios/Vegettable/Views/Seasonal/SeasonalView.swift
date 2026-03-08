@@ -9,16 +9,14 @@ struct SeasonalView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
-                           startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
+            LiquidGlassBackground()
 
             VStack(spacing: 0) {
                 // 分類
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(categories, id: \.0) { cat in
-                            CategoryChip(
+                            LiquidChip(
                                 label: cat.0,
                                 isSelected: selectedCategory == cat.1,
                                 action: {
@@ -28,23 +26,25 @@ struct SeasonalView: View {
                             )
                         }
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 16)
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
 
                 if isLoading {
                     Spacer()
                     ProgressView()
+                        .tint(AppColors.primary)
                     Spacer()
                 } else {
-                    List {
-                        ForEach(items) { info in
-                            SeasonalRow(info: info)
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
+                    ScrollView {
+                        LazyVStack(spacing: 10) {
+                            ForEach(items) { info in
+                                SeasonalRow(info: info)
+                            }
                         }
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 24)
                     }
-                    .listStyle(.plain)
                 }
             }
         }
@@ -74,49 +74,69 @@ struct SeasonalRow: View {
 
     var body: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text(info.cropName)
-                        .font(.headline)
+                        .font(.system(size: 17, weight: .semibold, design: .rounded))
 
                     Spacer()
 
                     Text(info.isInSeason ? "當季" : "非當季")
-                        .font(.caption2)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 3)
-                        .foregroundColor(info.isInSeason ? AppColors.primary : .gray)
-                        .background(info.isInSeason ? AppColors.primary.opacity(0.1) : Color.gray.opacity(0.1))
-                        .clipShape(Capsule())
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .foregroundColor(info.isInSeason ? AppColors.primary : AppColors.textTertiary)
+                        .background(
+                            Capsule()
+                                .fill(info.isInSeason ? AppColors.primary.opacity(0.1) : Color.gray.opacity(0.1))
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(
+                                            info.isInSeason ? AppColors.primary.opacity(0.2) : Color.gray.opacity(0.15),
+                                            lineWidth: 0.5
+                                        )
+                                )
+                        )
                 }
 
                 // 12 月份格子
-                HStack(spacing: 2) {
+                HStack(spacing: 3) {
                     ForEach(1...12, id: \.self) { m in
                         Text("\(m)")
-                            .font(.system(size: 9))
+                            .font(.system(size: 9, weight: info.peakMonths.contains(m) ? .bold : .regular, design: .rounded))
                             .frame(maxWidth: .infinity)
-                            .frame(height: 24)
+                            .frame(height: 26)
                             .background(
-                                info.peakMonths.contains(m)
-                                    ? AppColors.primaryLight
-                                    : (m == currentMonth ? AppColors.background : Color(hex: "#F5F5F5"))
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(
+                                        info.peakMonths.contains(m)
+                                            ? LinearGradient(
+                                                colors: [AppColors.primaryLight, AppColors.primary],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                              )
+                                            : (m == currentMonth
+                                                ? LinearGradient(colors: [AppColors.primary.opacity(0.15)], startPoint: .top, endPoint: .bottom)
+                                                : LinearGradient(colors: [Color.white.opacity(0.3)], startPoint: .top, endPoint: .bottom)
+                                              )
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .strokeBorder(Color.white.opacity(0.3), lineWidth: 0.5)
+                                    )
                             )
                             .foregroundColor(
                                 info.peakMonths.contains(m) ? .white
                                     : (m == currentMonth ? AppColors.primary : AppColors.textTertiary)
                             )
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
                 }
 
                 Text(info.seasonNote)
-                    .font(.caption2)
+                    .font(.system(size: 12, design: .rounded))
                     .foregroundColor(AppColors.textTertiary)
             }
-            .padding(16)
+            .padding(18)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
     }
 }

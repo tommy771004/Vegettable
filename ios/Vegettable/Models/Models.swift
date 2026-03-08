@@ -138,7 +138,7 @@ enum CropCategory: String, CaseIterable {
     case vegetable = "vegetable"
     case fruit = "fruit"
     case fish = "fish"
-    case meat = "meat"
+    case meat = "poultry"
     case flower = "flower"
     case rice = "rice"
 
@@ -158,7 +158,7 @@ enum CropCategory: String, CaseIterable {
         switch self {
         case .all: return "square.grid.2x2"
         case .vegetable: return "leaf"
-        case .fruit: return "apple.logo"
+        case .fruit: return "leaf.circle"
         case .fish: return "fish"
         case .meat: return "fork.knife"
         case .flower: return "camera.macro"
