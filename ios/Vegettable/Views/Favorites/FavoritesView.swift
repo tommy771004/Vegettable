@@ -4,6 +4,7 @@ struct FavoritesView: View {
     @EnvironmentObject var settings: SettingsManager
     @State private var allProducts: [ProductSummary] = []
     @State private var isLoading = false
+    @State private var errorMessage: String?
 
     var favoriteProducts: [ProductSummary] {
         allProducts.filter { settings.isFavorite($0.cropCode) }
@@ -23,6 +24,21 @@ struct FavoritesView: View {
                             .font(.system(size: 14, design: .rounded))
                             .foregroundColor(AppColors.textTertiary)
                     }
+                } else if let error = errorMessage {
+                    Spacer()
+                    VStack(spacing: 14) {
+                        Image(systemName: "wifi.exclamationmark")
+                            .font(.system(size: 40))
+                            .foregroundColor(AppColors.textTertiary)
+                        Text(error)
+                            .font(.system(size: 14, design: .rounded))
+                            .foregroundColor(AppColors.textSecondary)
+                        Button("重試") { loadProducts() }
+                            .buttonStyle(.borderedProminent)
+                            .tint(AppColors.primary)
+                            .clipShape(Capsule())
+                    }
+                    Spacer()
                 } else if favoriteProducts.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "heart.slash")
@@ -75,6 +91,7 @@ struct FavoritesView: View {
         }
 
         isLoading = true
+        errorMessage = nil
         Task {
             do {
                 let products = try await ApiClient.shared.fetchProducts()
@@ -83,7 +100,10 @@ struct FavoritesView: View {
                     isLoading = false
                 }
             } catch {
-                await MainActor.run { isLoading = false }
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = "載入失敗: \(error.localizedDescription)"
+                }
             }
         }
     }

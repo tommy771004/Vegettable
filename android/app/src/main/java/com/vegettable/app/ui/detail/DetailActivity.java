@@ -4,6 +4,8 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -56,6 +58,13 @@ public class DetailActivity extends AppCompatActivity {
         loadRecipes();
     }
 
+    /** dp → px 轉換 */
+    private int dp(int dpVal) {
+        return (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, dpVal,
+                getResources().getDisplayMetrics());
+    }
+
     private void bindViews() {
         tvTitle = findViewById(R.id.tv_title);
         tvAliases = findViewById(R.id.tv_aliases);
@@ -83,7 +92,6 @@ public class DetailActivity extends AppCompatActivity {
     private void setupActions() {
         btnBack.setOnClickListener(v -> finish());
 
-        // 收藏
         updateFavoriteIcon();
         btnFavorite.setOnClickListener(v -> {
             if (cropCode != null) {
@@ -92,7 +100,6 @@ public class DetailActivity extends AppCompatActivity {
             }
         });
 
-        // 分享
         btnShare.setOnClickListener(v -> {
             String shareText = cropName + " — 菜價查詢 App";
             Intent intent = new Intent(Intent.ACTION_SEND);
@@ -133,6 +140,20 @@ public class DetailActivity extends AppCompatActivity {
                 });
     }
 
+    /** 日期標籤格式化：「115.03.02」→「03/02」 */
+    private String formatDateLabel(String raw) {
+        if (raw == null) return "";
+        if (raw.contains(".")) {
+            String[] parts = raw.split("\\.");
+            if (parts.length >= 3) return parts[1] + "/" + parts[2];
+        }
+        if (raw.contains("-")) {
+            String[] parts = raw.split("-");
+            if (parts.length >= 3) return parts[1] + "/" + parts[2];
+        }
+        return raw;
+    }
+
     private void displayDetail(ProductDetail detail) {
         // 別名
         if (detail.getAliases() != null && !detail.getAliases().isEmpty()) {
@@ -160,68 +181,56 @@ public class DetailActivity extends AppCompatActivity {
         tvLevelBadge.setTextColor(PriceUtils.getPriceLevelColor(detail.getPriceLevel()));
         GradientDrawable badgeBg = new GradientDrawable();
         badgeBg.setColor(PriceUtils.getPriceLevelBgColor(detail.getPriceLevel()));
-        badgeBg.setCornerRadius(40f);
+        badgeBg.setCornerRadius(dp(20));
         tvLevelBadge.setBackground(badgeBg);
 
         // 歷史均價
         tvHistorical.setText(PriceUtils.formatPrice(detail.getHistoricalAvgPrice()) + " 元");
 
-        // 交易量 — 從日價格列表取最新的 volume
+        // 交易量
         if (detail.getDailyPrices() != null && !detail.getDailyPrices().isEmpty()) {
             double vol = detail.getDailyPrices().get(detail.getDailyPrices().size() - 1).getVolume();
             tvVolume.setText(PriceUtils.formatPrice(vol) + " 公斤");
         }
 
-        // 簡易圖表 — 使用 TextView 顯示數值（完整圖表需 MPAndroidChart）
-        displaySimpleChart(chartDailyContainer, detail.getDailyPrices());
-        displaySimpleMonthlyChart(chartMonthlyContainer, detail.getMonthlyPrices());
+        // 日價格圖表（最近 7 天）
+        displayDailyChart(chartDailyContainer, detail.getDailyPrices());
+
+        // 月均價圖表（最近 12 個月）
+        List<MonthlyPrice> monthly = detail.getMonthlyPrices();
+        if (monthly != null && monthly.size() > 12) {
+            monthly = monthly.subList(monthly.size() - 12, monthly.size());
+        }
+        displayMonthlyChart(chartMonthlyContainer, monthly);
     }
 
-    private void displaySimpleChart(LinearLayout container, List<DailyPrice> prices) {
+    private void displayDailyChart(LinearLayout container, List<DailyPrice> prices) {
         container.removeAllViews();
+        container.setOrientation(LinearLayout.VERTICAL);
         if (prices == null || prices.isEmpty()) return;
 
+        int start = Math.max(0, prices.size() - 7);
+        List<DailyPrice> recent = prices.subList(start, prices.size());
+
         double maxPrice = 0;
-        for (DailyPrice dp : prices) {
+        for (DailyPrice dp : recent) {
             maxPrice = Math.max(maxPrice, dp.getAvgPrice());
         }
 
-        for (DailyPrice dp : prices) {
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setPadding(0, 4, 0, 4);
-
-            TextView tvDate = new TextView(this);
-            tvDate.setText(dp.getDate());
-            tvDate.setTextSize(11);
-            tvDate.setTextColor(Color.parseColor("#8899A6"));
-            tvDate.setWidth(120);
-
-            // 簡易 bar
-            View bar = new View(this);
-            int barWidth = maxPrice > 0 ? (int) (dp.getAvgPrice() / maxPrice * 400) : 0;
-            LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(barWidth, 16);
-            barParams.setMarginStart(8);
-            bar.setLayoutParams(barParams);
-            GradientDrawable barBg = new GradientDrawable();
-            barBg.setColor(Color.parseColor("#43A047"));
-            barBg.setCornerRadius(8f);
-            bar.setBackground(barBg);
-
-            TextView tvVal = new TextView(this);
-            tvVal.setText(" " + PriceUtils.formatPrice(dp.getAvgPrice()));
-            tvVal.setTextSize(11);
-            tvVal.setTextColor(Color.parseColor("#0F1419"));
-
-            row.addView(tvDate);
-            row.addView(bar);
-            row.addView(tvVal);
-            container.addView(row);
+        for (DailyPrice dp : recent) {
+            container.addView(createChartRow(
+                    formatDateLabel(dp.getDate()),
+                    dp.getAvgPrice(),
+                    maxPrice,
+                    Color.parseColor("#43A047"),
+                    dp(48)
+            ));
         }
     }
 
-    private void displaySimpleMonthlyChart(LinearLayout container, List<MonthlyPrice> prices) {
+    private void displayMonthlyChart(LinearLayout container, List<MonthlyPrice> prices) {
         container.removeAllViews();
+        container.setOrientation(LinearLayout.VERTICAL);
         if (prices == null || prices.isEmpty()) return;
 
         double maxPrice = 0;
@@ -230,35 +239,73 @@ public class DetailActivity extends AppCompatActivity {
         }
 
         for (MonthlyPrice mp : prices) {
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setPadding(0, 4, 0, 4);
-
-            TextView tvMonth = new TextView(this);
-            tvMonth.setText(mp.getMonth());
-            tvMonth.setTextSize(11);
-            tvMonth.setTextColor(Color.parseColor("#8899A6"));
-            tvMonth.setWidth(120);
-
-            View bar = new View(this);
-            int barWidth = maxPrice > 0 ? (int) (mp.getAvgPrice() / maxPrice * 400) : 0;
-            LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(barWidth, 16);
-            barParams.setMarginStart(8);
-            bar.setLayoutParams(barParams);
-            GradientDrawable barBg = new GradientDrawable();
-            barBg.setColor(Color.parseColor("#2196F3"));
-            barBg.setCornerRadius(8f);
-            bar.setBackground(barBg);
-
-            TextView tvVal = new TextView(this);
-            tvVal.setText(" " + PriceUtils.formatPrice(mp.getAvgPrice()));
-            tvVal.setTextSize(11);
-
-            row.addView(tvMonth);
-            row.addView(bar);
-            row.addView(tvVal);
-            container.addView(row);
+            container.addView(createChartRow(
+                    mp.getMonth(),
+                    mp.getAvgPrice(),
+                    maxPrice,
+                    Color.parseColor("#42A5F5"),
+                    dp(56)
+            ));
         }
+    }
+
+    /** 建立圖表單列：[標籤] [軌道+值條] [數值] */
+    private LinearLayout createChartRow(String label, double value, double maxValue,
+                                        int barColor, int labelWidth) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(3), 0, dp(3));
+
+        // 標籤
+        TextView tvLabel = new TextView(this);
+        tvLabel.setText(label);
+        tvLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        tvLabel.setTextColor(Color.parseColor("#8899A6"));
+        tvLabel.setMaxLines(1);
+        LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
+                labelWidth, LinearLayout.LayoutParams.WRAP_CONTENT);
+        tvLabel.setLayoutParams(labelParams);
+
+        // 背景軌道 + 值條
+        LinearLayout barWrapper = new LinearLayout(this);
+        LinearLayout.LayoutParams wrapperParams = new LinearLayout.LayoutParams(0, dp(18), 1f);
+        wrapperParams.setMarginStart(dp(6));
+        barWrapper.setLayoutParams(wrapperParams);
+
+        GradientDrawable trackBg = new GradientDrawable();
+        trackBg.setColor(Color.parseColor("#14808080"));
+        trackBg.setCornerRadius(dp(5));
+        barWrapper.setBackground(trackBg);
+
+        View bar = new View(this);
+        int barWidth = maxValue > 0 ? (int) (value / maxValue * dp(160)) : 0;
+        barWidth = Math.max(dp(4), barWidth);
+        LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(barWidth, dp(18));
+        bar.setLayoutParams(barParams);
+
+        GradientDrawable barBg = new GradientDrawable();
+        barBg.setColor(barColor);
+        barBg.setCornerRadius(dp(5));
+        bar.setBackground(barBg);
+        barWrapper.addView(bar);
+
+        // 數值
+        TextView tvVal = new TextView(this);
+        tvVal.setText(PriceUtils.formatPrice(value));
+        tvVal.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        tvVal.setTextColor(Color.parseColor("#0F1419"));
+        tvVal.setMaxLines(1);
+        tvVal.setGravity(Gravity.END);
+        LinearLayout.LayoutParams valParams = new LinearLayout.LayoutParams(
+                dp(44), LinearLayout.LayoutParams.WRAP_CONTENT);
+        valParams.setMarginStart(dp(6));
+        tvVal.setLayoutParams(valParams);
+
+        row.addView(tvLabel);
+        row.addView(barWrapper);
+        row.addView(tvVal);
+        return row;
     }
 
     private void loadPrediction() {
@@ -319,16 +366,16 @@ public class DetailActivity extends AppCompatActivity {
         for (Recipe r : recipes) {
             LinearLayout item = new LinearLayout(this);
             item.setOrientation(LinearLayout.VERTICAL);
-            item.setPadding(0, 8, 0, 8);
+            item.setPadding(0, dp(6), 0, dp(6));
 
             TextView tvName = new TextView(this);
             tvName.setText(r.getName() + " (" + r.getCookTimeMinutes() + "分)");
-            tvName.setTextSize(14);
+            tvName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
             tvName.setTextColor(Color.parseColor("#0F1419"));
 
             TextView tvDesc = new TextView(this);
             tvDesc.setText(r.getDescription());
-            tvDesc.setTextSize(12);
+            tvDesc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             tvDesc.setTextColor(Color.parseColor("#536471"));
 
             item.addView(tvName);

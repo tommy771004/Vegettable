@@ -35,9 +35,10 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
     private TextInputEditText etSearch;
     private RecyclerView rvResults;
     private TextView tvResultCount;
+    private TextView tvSearchError;
     private ProductAdapter adapter;
     private PrefsManager prefs;
-    private android.os.Handler handler = new android.os.Handler();
+    private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable searchRunnable;
 
     @Nullable
@@ -56,6 +57,7 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
         etSearch = view.findViewById(R.id.et_search);
         rvResults = view.findViewById(R.id.rv_results);
         tvResultCount = view.findViewById(R.id.tv_result_count);
+        tvSearchError = view.findViewById(R.id.tv_search_error);
 
         rvResults.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new ProductAdapter(this, prefs.getFavorites());
@@ -86,6 +88,8 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
             return;
         }
 
+        if (tvSearchError != null) tvSearchError.setVisibility(View.GONE);
+
         ApiClient.getInstance().getApi().searchProducts(keyword)
                 .enqueue(new Callback<ApiResponse<List<ProductSummary>>>() {
                     @Override
@@ -98,13 +102,18 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
                             adapter.setItems(results);
                             tvResultCount.setText("找到 " + results.size() + " 項結果");
                             tvResultCount.setVisibility(View.VISIBLE);
+                            if (tvSearchError != null) tvSearchError.setVisibility(View.GONE);
                         }
                     }
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<List<ProductSummary>>> call,
                                           @NonNull Throwable t) {
-                        // 靜默失敗
+                        if (!isAdded()) return;
+                        if (tvSearchError != null) {
+                            tvSearchError.setText("搜尋失敗: " + t.getMessage());
+                            tvSearchError.setVisibility(View.VISIBLE);
+                        }
                     }
                 });
     }
@@ -121,5 +130,13 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
     public void onFavoriteClick(ProductSummary product) {
         prefs.toggleFavorite(product.getCropCode());
         adapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (searchRunnable != null) {
+            handler.removeCallbacks(searchRunnable);
+        }
     }
 }

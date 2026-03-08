@@ -39,11 +39,20 @@ struct DetailView: View {
                         // 主價格卡
                         priceCard(detail)
 
-                        // 日價格圖
-                        chartCard(title: "近 7 日價格走勢", prices: detail.dailyPrices.map { ($0.date, $0.avgPrice) }, color: AppColors.primaryLight)
 
-                        // 月價格圖
-                        chartCard(title: "近 3 年月均價", prices: detail.monthlyPrices.map { ($0.month, $0.avgPrice) }, color: Color(hex: "#42A5F5"))
+                        // 日價格圖 (最近 7 天)
+                        barChartCard(
+                            title: "近 7 日價格走勢",
+                            data: detail.dailyPrices.suffix(7).map { (formatDateLabel($0.date), $0.avgPrice) },
+                            barColor: AppColors.primaryLight
+                        )
+
+                        // 月價格圖 (最近 12 個月)
+                        barChartCard(
+                            title: "近 3 年月均價（近 12 月）",
+                            data: detail.monthlyPrices.suffix(12).map { ($0.month, $0.avgPrice) },
+                            barColor: Color(hex: "#42A5F5")
+                        )
 
                         // AI 預測
                         if let pred = prediction {
@@ -58,10 +67,20 @@ struct DetailView: View {
                     .padding(.horizontal, 14)
                     .padding(.bottom, 40)
                 }
+                .refreshable { loadData() }
             } else if let error = errorMessage {
-                Text(error)
-                    .font(.system(size: 14, design: .rounded))
-                    .foregroundColor(AppColors.textSecondary)
+                VStack(spacing: 14) {
+                    Image(systemName: "wifi.exclamationmark")
+                        .font(.system(size: 40))
+                        .foregroundColor(AppColors.textTertiary)
+                    Text(error)
+                        .font(.system(size: 14, design: .rounded))
+                        .foregroundColor(AppColors.textSecondary)
+                    Button("重試") { loadData() }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.primary)
+                        .clipShape(Capsule())
+                }
             }
         }
         .navigationTitle(cropName)
@@ -81,6 +100,25 @@ struct DetailView: View {
             }
         }
         .onAppear { loadDetail() }
+    }
+
+    /// 日期格式化：「115.03.02」→「03/02」、「2023/01」保留
+    private func formatDateLabel(_ raw: String) -> String {
+        // 民國年格式 "115.03.02"
+        if raw.contains(".") {
+            let parts = raw.split(separator: ".")
+            if parts.count >= 3 {
+                return "\(parts[1])/\(parts[2])"
+            }
+        }
+        // 西元格式 "2023-03-02"
+        if raw.contains("-") {
+            let parts = raw.split(separator: "-")
+            if parts.count >= 3 {
+                return "\(parts[1])/\(parts[2])"
+            }
+        }
+        return raw
     }
 
     // MARK: - 價格卡片
@@ -118,7 +156,6 @@ struct DetailView: View {
                     .foregroundColor(AppColors.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                // 分隔線 — 玻璃質感
                 Rectangle()
                     .fill(
                         LinearGradient(
@@ -154,58 +191,31 @@ struct DetailView: View {
         }
     }
 
-    // MARK: - 圖表卡片
-    private func chartCard(title: String, prices: [(String, Double)], color: Color) -> some View {
+    // MARK: - 橫條圖卡片（不使用 GeometryReader）
+    private func barChartCard(title: String, data: [(String, Double)], barColor: Color) -> some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text(title)
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundColor(AppColors.primary)
+                    .padding(.bottom, 12)
 
-                if prices.isEmpty {
+                if data.isEmpty {
                     Text("暫無資料")
                         .font(.system(size: 13, design: .rounded))
                         .foregroundColor(AppColors.textTertiary)
+                        .padding(.vertical, 20)
                 } else {
-                    let maxVal = prices.map(\.1).max() ?? 1
+                    let maxVal = data.map(\.1).max() ?? 1
 
-                    ForEach(Array(prices.enumerated()), id: \.0) { _, item in
-                        HStack(spacing: 8) {
-                            Text(item.0)
-                                .font(.system(size: 11, design: .rounded))
-                                .foregroundColor(AppColors.textTertiary)
-                                .frame(width: 70, alignment: .leading)
-
-                            GeometryReader { geo in
-                                let width = max(0, CGFloat(item.1 / maxVal) * geo.size.width)
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [color.opacity(0.8), color],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(width: width, height: 16)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 5)
-                                            .fill(
-                                                LinearGradient(
-                                                    colors: [Color.white.opacity(0.3), Color.clear],
-                                                    startPoint: .top,
-                                                    endPoint: .bottom
-                                                )
-                                            )
-                                            .frame(width: width, height: 8)
-                                            .offset(y: -2)
-                                        , alignment: .top
-                                    )
-                            }
-                            .frame(height: 16)
-
-                            Text(PriceUtils.formatPrice(item.1))
-                                .font(.system(size: 11, weight: .medium, design: .rounded))
-                                .frame(width: 40, alignment: .trailing)
+                    VStack(spacing: 8) {
+                        ForEach(Array(data.enumerated()), id: \.0) { _, item in
+                            ChartBarRow(
+                                label: item.0,
+                                value: item.1,
+                                maxValue: maxVal,
+                                barColor: barColor
+                            )
                         }
                     }
                 }
@@ -304,5 +314,69 @@ struct DetailView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - 圖表列元件（固定佈局，不使用 GeometryReader）
+struct ChartBarRow: View {
+    let label: String
+    let value: Double
+    let maxValue: Double
+    let barColor: Color
+
+    private var ratio: CGFloat {
+        maxValue > 0 ? CGFloat(value / maxValue) : 0
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            // 日期標籤
+            Text(label)
+                .font(.system(size: 11, design: .rounded))
+                .foregroundColor(AppColors.textTertiary)
+                .frame(width: 52, alignment: .leading)
+                .lineLimit(1)
+
+            // 長條 — 使用固定 maxWidth 乘以比例
+            ZStack(alignment: .leading) {
+                // 背景軌道
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(Color.gray.opacity(0.08))
+                    .frame(height: 18)
+
+                // 值條
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(
+                        LinearGradient(
+                            colors: [barColor.opacity(0.7), barColor],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(6, ratio * 180), height: 18)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.35), Color.clear],
+                                    startPoint: .top,
+                                    endPoint: .center
+                                )
+                            )
+                            .frame(height: 9)
+                            .offset(y: -4.5)
+                        , alignment: .top
+                    )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // 數值
+            Text(PriceUtils.formatPrice(value))
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .foregroundColor(AppColors.textPrimary)
+                .frame(width: 44, alignment: .trailing)
+                .lineLimit(1)
+        }
+        .frame(height: 24)
     }
 }
