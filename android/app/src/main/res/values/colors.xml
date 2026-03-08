@@ -1,30 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#2E7D32</color>
-    <color name="primary_light">#4CAF50</color>
-    <color name="primary_dark">#1B5E20</color>
-    <color name="background">#E8F5E9</color>
-    <color name="background_end">#C8E6C9</color>
-    <color name="surface">#FFFFFF</color>
-    <color name="text_primary">#1B1B1F</color>
-    <color name="text_secondary">#49454F</color>
-    <color name="text_tertiary">#79747E</color>
-    <color name="divider">#0F000000</color>
-    <color name="glass_bg">#B8FFFFFF</color>
+    <!-- Liquid Glass 主色調 -->
+    <color name="primary">#1B8A50</color>
+    <color name="primary_light">#43A047</color>
+    <color name="primary_dark">#0D5C2F</color>
 
-    <color name="price_very_cheap">#D32F2F</color>
-    <color name="price_cheap">#FF8A80</color>
-    <color name="price_normal">#82B1FF</color>
+    <!-- Liquid Glass 背景 -->
+    <color name="background">#F0F4F8</color>
+    <color name="background_end">#E1E8EF</color>
+    <color name="surface">#FFFFFF</color>
+
+    <!-- 文字 -->
+    <color name="text_primary">#0F1419</color>
+    <color name="text_secondary">#536471</color>
+    <color name="text_tertiary">#8899A6</color>
+
+    <!-- 玻璃效果 -->
+    <color name="divider">#0A000000</color>
+    <color name="glass_bg">#73FFFFFF</color>
+    <color name="glass_stroke">#99FFFFFF</color>
+    <color name="glass_highlight">#80FFFFFF</color>
+
+    <!-- 價格等級 -->
+    <color name="price_very_cheap">#E53935</color>
+    <color name="price_cheap">#FF7043</color>
+    <color name="price_normal">#42A5F5</color>
     <color name="price_expensive">#1565C0</color>
 
-    <color name="trend_up">#D32F2F</color>
+    <!-- 趨勢 -->
+    <color name="trend_up">#E53935</color>
     <color name="trend_down">#2E7D32</color>
     <color name="trend_stable">#757575</color>
 
-    <color name="cat_vegetable">#4CAF50</color>
+    <!-- 分類 -->
+    <color name="cat_vegetable">#43A047</color>
     <color name="cat_fruit">#FF9800</color>
-    <color name="cat_fish">#2196F3</color>
-    <color name="cat_meat">#F44336</color>
-    <color name="cat_flower">#E91E63</color>
-    <color name="cat_rice">#795548</color>
+    <color name="cat_fish">#42A5F5</color>
+    <color name="cat_meat">#EF5350</color>
+    <color name="cat_flower">#EC407A</color>
+    <color name="cat_rice">#8D6E63</color>
+
+    <!-- 浮動 Tab Bar -->
+    <color name="tab_bar_bg">#D9FFFFFF</color>
+    <color name="tab_bar_indicator">#1A1B8A50</color>
 </resources>

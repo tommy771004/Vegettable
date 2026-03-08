@@ -3,7 +3,7 @@ package com.vegettable.app.util;
 import android.graphics.Color;
 
 /**
- * 價格相關工具
+ * 價格相關工具 — Liquid Glass 配色
  */
 public class PriceUtils {
 
@@ -32,9 +32,9 @@ public class PriceUtils {
     public static int getPriceLevelColor(String level) {
         if (level == null) return Color.GRAY;
         switch (level) {
-            case "very-cheap": return Color.parseColor("#D32F2F");
-            case "cheap":      return Color.parseColor("#FF8A80");
-            case "normal":     return Color.parseColor("#82B1FF");
+            case "very-cheap": return Color.parseColor("#E53935");
+            case "cheap":      return Color.parseColor("#FF7043");
+            case "normal":     return Color.parseColor("#42A5F5");
             case "expensive":  return Color.parseColor("#1565C0");
             default:           return Color.GRAY;
         }
@@ -44,10 +44,10 @@ public class PriceUtils {
     public static int getPriceLevelBgColor(String level) {
         if (level == null) return Color.parseColor("#10808080");
         switch (level) {
-            case "very-cheap": return Color.parseColor("#1AD32F2F");
-            case "cheap":      return Color.parseColor("#1AFF8A80");
-            case "normal":     return Color.parseColor("#1A82B1FF");
-            case "expensive":  return Color.parseColor("#1A1565C0");
+            case "very-cheap": return Color.parseColor("#1EE53935");
+            case "cheap":      return Color.parseColor("#1EFF7043");
+            case "normal":     return Color.parseColor("#1E42A5F5");
+            case "expensive":  return Color.parseColor("#1E1565C0");
             default:           return Color.parseColor("#10808080");
         }
     }
@@ -78,7 +78,7 @@ public class PriceUtils {
     public static int getTrendColor(String trend) {
         if (trend == null) return Color.GRAY;
         switch (trend) {
-            case "up":   return Color.parseColor("#D32F2F");
+            case "up":   return Color.parseColor("#E53935");
             case "down": return Color.parseColor("#2E7D32");
             default:     return Color.parseColor("#757575");
         }

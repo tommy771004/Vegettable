@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="14dp">
 
         <!-- 頂部導航列 -->
         <LinearLayout
@@ -34,8 +34,9 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="24sp"
+                android:textSize="26sp"
                 android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
                 android:textColor="@color/text_primary"
                 android:layout_marginStart="8dp" />
 
@@ -63,20 +64,21 @@
             android:layout_height="wrap_content"
             android:textSize="13sp"
             android:textColor="@color/text_tertiary"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="14dp"
+            android:layout_marginStart="4dp" />
 
         <!-- 主要價格卡片 -->
         <com.google.android.material.card.MaterialCardView
             style="@style/GlassCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="14dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="22dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -88,14 +90,16 @@
                         android:id="@+id/tv_price"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textSize="34sp"
-                        android:textStyle="bold" />
+                        android:textSize="36sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium" />
 
                     <TextView
                         android:id="@+id/tv_trend_arrow"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textSize="24sp"
+                        android:textStyle="bold"
                         android:layout_marginStart="8dp" />
 
                     <View
@@ -107,11 +111,12 @@
                         android:id="@+id/tv_level_badge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
-                        android:textSize="13sp" />
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:paddingTop="5dp"
+                        android:paddingBottom="5dp"
+                        android:textSize="12sp"
+                        android:fontFamily="sans-serif-medium" />
                 </LinearLayout>
 
                 <TextView
@@ -126,8 +131,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="@color/divider"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginTop="14dp"
+                    android:layout_marginBottom="14dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -145,15 +150,16 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/historical_avg"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             android:textColor="@color/text_tertiary" />
 
                         <TextView
                             android:id="@+id/tv_historical"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textSize="17sp"
+                            android:textSize="16sp"
                             android:textStyle="bold"
+                            android:fontFamily="sans-serif-medium"
                             android:textColor="@color/text_primary" />
                     </LinearLayout>
 
@@ -168,15 +174,16 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/volume"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             android:textColor="@color/text_tertiary" />
 
                         <TextView
                             android:id="@+id/tv_volume"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textSize="17sp"
+                            android:textSize="16sp"
                             android:textStyle="bold"
+                            android:fontFamily="sans-serif-medium"
                             android:textColor="@color/text_primary" />
                     </LinearLayout>
                 </LinearLayout>
@@ -188,13 +195,13 @@
             style="@style/GlassCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="14dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -202,13 +209,14 @@
                     android:text="@string/daily_chart_title"
                     android:textSize="15sp"
                     android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium"
                     android:textColor="@color/primary" />
 
                 <LinearLayout
                     android:id="@+id/chart_daily_container"
                     android:layout_width="match_parent"
                     android:layout_height="200dp"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginTop="10dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -217,13 +225,13 @@
             style="@style/GlassCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="14dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -231,13 +239,14 @@
                     android:text="@string/monthly_chart_title"
                     android:textSize="15sp"
                     android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium"
                     android:textColor="@color/primary" />
 
                 <LinearLayout
                     android:id="@+id/chart_monthly_container"
                     android:layout_width="match_parent"
                     android:layout_height="200dp"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginTop="10dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -247,14 +256,14 @@
             style="@style/GlassCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
+            android:layout_marginBottom="14dp"
             android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -262,6 +271,7 @@
                     android:text="@string/prediction_title"
                     android:textSize="15sp"
                     android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium"
                     android:textColor="@color/primary" />
 
                 <TextView
@@ -270,7 +280,7 @@
                     android:layout_height="wrap_content"
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginTop="10dp" />
 
                 <ProgressBar
                     android:id="@+id/progress_confidence"
@@ -278,7 +288,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:max="100"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginTop="10dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -295,7 +305,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -303,6 +313,7 @@
                     android:text="@string/recipes_title"
                     android:textSize="15sp"
                     android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium"
                     android:textColor="@color/primary" />
 
                 <LinearLayout
@@ -310,7 +321,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginTop="10dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

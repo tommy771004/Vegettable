@@ -4,16 +4,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
+    android:layout_marginBottom="10dp"
     app:cardBackgroundColor="@color/glass_bg"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp">
+    app:cardCornerRadius="20dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/glass_stroke">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:padding="18dp"
         android:gravity="center_vertical">
 
         <!-- 左側：產品名稱 + 別名 -->
@@ -29,6 +31,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="17sp"
                 android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
                 android:textColor="@color/text_primary" />
 
             <TextView
@@ -37,7 +40,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="12sp"
                 android:textColor="@color/text_tertiary"
-                android:layout_marginTop="2dp" />
+                android:layout_marginTop="3dp" />
 
             <!-- 價格等級標籤 -->
             <TextView
@@ -45,11 +48,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="11sp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp"
-                android:layout_marginTop="4dp" />
+                android:fontFamily="sans-serif-medium"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:layout_marginTop="5dp" />
         </LinearLayout>
 
         <!-- 右側：價格 + 趨勢 + 收藏 -->
@@ -69,14 +73,16 @@
                     android:id="@+id/tv_price"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium" />
 
                 <TextView
                     android:id="@+id/tv_trend"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="16sp"
+                    android:textStyle="bold"
                     android:layout_marginStart="4dp" />
             </LinearLayout>
 

@@ -10,49 +10,60 @@ struct SearchView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
-                               startPoint: .top, endPoint: .bottom)
-                    .ignoresSafeArea()
+                LiquidGlassBackground()
 
                 VStack(spacing: 0) {
-                    // 搜尋欄
-                    HStack {
+                    // Liquid Glass 搜尋欄
+                    HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(AppColors.textTertiary)
+                            .font(.system(size: 16))
                         TextField("搜尋蔬果名稱…", text: $keyword)
+                            .font(.system(size: 15, design: .rounded))
                             .textFieldStyle(.plain)
                             .onChange(of: keyword) { _ in debounceSearch() }
                     }
-                    .padding(12)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal)
+                    .padding(14)
+                    .background(
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.ultraThinMaterial)
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white.opacity(0.4))
+                            RoundedRectangle(cornerRadius: 16)
+                                .strokeBorder(Color.white.opacity(0.5), lineWidth: 0.8)
+                        }
+                    )
+                    .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
+                    .padding(.horizontal, 14)
 
                     if !results.isEmpty {
                         Text("找到 \(results.count) 項結果")
-                            .font(.caption)
+                            .font(.system(size: 13, design: .rounded))
                             .foregroundColor(AppColors.textSecondary)
-                            .padding(.horizontal)
-                            .padding(.top, 8)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 10)
                     }
 
-                    List {
-                        ForEach(results) { product in
-                            NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
-                                ProductRow(
-                                    product: product,
-                                    isFavorite: settings.isFavorite(product.cropCode),
-                                    priceUnit: settings.priceUnit,
-                                    showRetail: settings.showRetailPrice,
-                                    onFavorite: { settings.toggleFavorite(product.cropCode) }
-                                )
+                    ScrollView {
+                        LazyVStack(spacing: 10) {
+                            ForEach(results) { product in
+                                NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
+                                    ProductRow(
+                                        product: product,
+                                        isFavorite: settings.isFavorite(product.cropCode),
+                                        priceUnit: settings.priceUnit,
+                                        showRetail: settings.showRetailPrice,
+                                        onFavorite: { settings.toggleFavorite(product.cropCode) }
+                                    )
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                         }
+                        .padding(.horizontal, 14)
+                        .padding(.top, 8)
+                        .padding(.bottom, 100)
                     }
-                    .listStyle(.plain)
                 }
             }
             .navigationTitle("搜尋")
@@ -69,7 +80,7 @@ struct SearchView: View {
         }
 
         searchTask = Task {
-            try? await Task.sleep(nanoseconds: 300_000_000) // 300ms
+            try? await Task.sleep(nanoseconds: 300_000_000)
             guard !Task.isCancelled else { return }
 
             do {
@@ -77,9 +88,7 @@ struct SearchView: View {
                 await MainActor.run {
                     results = searchResults
                 }
-            } catch {
-                // 靜默失敗
-            }
+            } catch {}
         }
     }
 }

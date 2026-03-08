@@ -10,24 +10,33 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:paddingTop="48dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/tab_search"
-            android:textSize="28sp"
+            android:textSize="30sp"
             android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
             android:textColor="@color/primary_dark" />
     </LinearLayout>
 
-    <com.google.android.material.textfield.TextInputLayout
+    <!-- Liquid Glass 搜尋欄 -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="14dp"
+        android:layout_marginTop="10dp"
+        app:cardBackgroundColor="@color/glass_bg"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/glass_stroke"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_search"
@@ -35,14 +44,18 @@
             android:layout_height="wrap_content"
             android:hint="@string/search_hint"
             android:inputType="text"
-            android:imeOptions="actionSearch" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:imeOptions="actionSearch"
+            android:background="@android:color/transparent"
+            android:padding="14dp"
+            android:textSize="15sp" />
+    </com.google.android.material.card.MaterialCardView>
 
     <TextView
         android:id="@+id/tv_result_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="16dp"
+        android:paddingStart="16dp"
+        android:paddingTop="10dp"
         android:textSize="13sp"
         android:textColor="@color/text_secondary"
         android:visibility="gone" />
@@ -52,6 +65,9 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:padding="12dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="80dp"
         android:clipToPadding="false" />
 </LinearLayout>

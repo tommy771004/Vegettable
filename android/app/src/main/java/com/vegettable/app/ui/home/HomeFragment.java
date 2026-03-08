@@ -50,7 +50,7 @@ public class HomeFragment extends Fragment implements ProductAdapter.OnItemClick
 
     private static final String[][] CATEGORIES = {
             {"all", "全部"}, {"vegetable", "蔬菜"}, {"fruit", "水果"},
-            {"fish", "漁產"}, {"meat", "肉品"}, {"flower", "花卉"}, {"rice", "白米"}
+            {"fish", "漁產"}, {"poultry", "肉品"}, {"flower", "花卉"}, {"rice", "白米"}
     };
 
     @Nullable

@@ -194,7 +194,7 @@ public class DetailActivity extends AppCompatActivity {
             TextView tvDate = new TextView(this);
             tvDate.setText(dp.getDate());
             tvDate.setTextSize(11);
-            tvDate.setTextColor(Color.parseColor("#79747E"));
+            tvDate.setTextColor(Color.parseColor("#8899A6"));
             tvDate.setWidth(120);
 
             // 簡易 bar
@@ -204,14 +204,14 @@ public class DetailActivity extends AppCompatActivity {
             barParams.setMarginStart(8);
             bar.setLayoutParams(barParams);
             GradientDrawable barBg = new GradientDrawable();
-            barBg.setColor(Color.parseColor("#4CAF50"));
+            barBg.setColor(Color.parseColor("#43A047"));
             barBg.setCornerRadius(8f);
             bar.setBackground(barBg);
 
             TextView tvVal = new TextView(this);
             tvVal.setText(" " + PriceUtils.formatPrice(dp.getAvgPrice()));
             tvVal.setTextSize(11);
-            tvVal.setTextColor(Color.parseColor("#1B1B1F"));
+            tvVal.setTextColor(Color.parseColor("#0F1419"));
 
             row.addView(tvDate);
             row.addView(bar);
@@ -237,7 +237,7 @@ public class DetailActivity extends AppCompatActivity {
             TextView tvMonth = new TextView(this);
             tvMonth.setText(mp.getMonth());
             tvMonth.setTextSize(11);
-            tvMonth.setTextColor(Color.parseColor("#79747E"));
+            tvMonth.setTextColor(Color.parseColor("#8899A6"));
             tvMonth.setWidth(120);
 
             View bar = new View(this);
@@ -324,12 +324,12 @@ public class DetailActivity extends AppCompatActivity {
             TextView tvName = new TextView(this);
             tvName.setText(r.getName() + " (" + r.getCookTimeMinutes() + "分)");
             tvName.setTextSize(14);
-            tvName.setTextColor(Color.parseColor("#1B1B1F"));
+            tvName.setTextColor(Color.parseColor("#0F1419"));
 
             TextView tvDesc = new TextView(this);
             tvDesc.setText(r.getDescription());
             tvDesc.setTextSize(12);
-            tvDesc.setTextColor(Color.parseColor("#49454F"));
+            tvDesc.setTextColor(Color.parseColor("#536471"));
 
             item.addView(tvName);
             item.addView(tvDesc);
