@@ -38,7 +38,7 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
     private TextView tvSearchError;
     private ProductAdapter adapter;
     private PrefsManager prefs;
-    private android.os.Handler handler = new android.os.Handler();
+    private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable searchRunnable;
 
     @Nullable
@@ -130,5 +130,13 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
     public void onFavoriteClick(ProductSummary product) {
         prefs.toggleFavorite(product.getCropCode());
         adapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (searchRunnable != null) {
+            handler.removeCallbacks(searchRunnable);
+        }
     }
 }

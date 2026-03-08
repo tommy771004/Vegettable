@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -32,7 +33,10 @@ public class CompareActivity extends AppCompatActivity {
     private TextInputEditText etCropName;
     private RecyclerView rvCompare;
     private ProgressBar progressBar;
+    private LinearLayout layoutError;
+    private TextView tvError;
     private CompareAdapter adapter;
+    private String lastCropName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,10 +48,18 @@ public class CompareActivity extends AppCompatActivity {
         etCropName = findViewById(R.id.et_crop_name);
         rvCompare = findViewById(R.id.rv_compare);
         progressBar = findViewById(R.id.progress_bar);
+        layoutError = findViewById(R.id.layout_error);
+        tvError = findViewById(R.id.tv_error);
 
         rvCompare.setLayoutManager(new LinearLayoutManager(this));
         adapter = new CompareAdapter();
         rvCompare.setAdapter(adapter);
+
+        findViewById(R.id.btn_retry).setOnClickListener(v -> {
+            if (lastCropName != null && !lastCropName.isEmpty()) {
+                comparePrices(lastCropName);
+            }
+        });
 
         etCropName.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
@@ -62,7 +74,9 @@ public class CompareActivity extends AppCompatActivity {
     }
 
     private void comparePrices(String cropName) {
+        lastCropName = cropName;
         progressBar.setVisibility(View.VISIBLE);
+        layoutError.setVisibility(View.GONE);
 
         ApiClient.getInstance().getApi().compareMarketPrices(cropName, null)
                 .enqueue(new Callback<ApiResponse<List<MarketPrice>>>() {
@@ -73,6 +87,9 @@ public class CompareActivity extends AppCompatActivity {
                         if (response.isSuccessful() && response.body() != null
                                 && response.body().isSuccess() && response.body().getData() != null) {
                             adapter.setItems(response.body().getData());
+                            rvCompare.setVisibility(View.VISIBLE);
+                        } else {
+                            showError("無法取得比價資料");
                         }
                     }
 
@@ -80,8 +97,14 @@ public class CompareActivity extends AppCompatActivity {
                     public void onFailure(@NonNull Call<ApiResponse<List<MarketPrice>>> call,
                                           @NonNull Throwable t) {
                         progressBar.setVisibility(View.GONE);
+                        showError("網路錯誤: " + t.getMessage());
                     }
                 });
+    }
+
+    private void showError(String message) {
+        tvError.setText(message);
+        layoutError.setVisibility(View.VISIBLE);
     }
 
     // ─── Adapter ────────────────────────────────────────────

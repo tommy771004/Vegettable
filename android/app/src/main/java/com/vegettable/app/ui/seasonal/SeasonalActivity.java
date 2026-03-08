@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -32,6 +33,9 @@ import retrofit2.Response;
 public class SeasonalActivity extends AppCompatActivity {
 
     private RecyclerView rvSeasonal;
+    private ProgressBar progressBar;
+    private LinearLayout layoutError;
+    private TextView tvError;
     private SeasonalAdapter adapter;
     private String selectedCategory = null;
 
@@ -43,9 +47,15 @@ public class SeasonalActivity extends AppCompatActivity {
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
         rvSeasonal = findViewById(R.id.rv_seasonal);
+        progressBar = findViewById(R.id.progress_bar);
+        layoutError = findViewById(R.id.layout_error);
+        tvError = findViewById(R.id.tv_error);
+
         rvSeasonal.setLayoutManager(new LinearLayoutManager(this));
         adapter = new SeasonalAdapter();
         rvSeasonal.setAdapter(adapter);
+
+        findViewById(R.id.btn_retry).setOnClickListener(v -> loadSeasonal());
 
         setupCategoryChips();
         loadSeasonal();
@@ -72,21 +82,36 @@ public class SeasonalActivity extends AppCompatActivity {
     }
 
     private void loadSeasonal() {
+        progressBar.setVisibility(View.VISIBLE);
+        layoutError.setVisibility(View.GONE);
+
         ApiClient.getInstance().getApi().getSeasonalInfo(selectedCategory)
                 .enqueue(new Callback<ApiResponse<List<SeasonalInfo>>>() {
                     @Override
                     public void onResponse(@NonNull Call<ApiResponse<List<SeasonalInfo>>> call,
                                            @NonNull Response<ApiResponse<List<SeasonalInfo>>> response) {
+                        progressBar.setVisibility(View.GONE);
                         if (response.isSuccessful() && response.body() != null
                                 && response.body().isSuccess() && response.body().getData() != null) {
                             adapter.setItems(response.body().getData());
+                            rvSeasonal.setVisibility(View.VISIBLE);
+                        } else {
+                            showError("無法取得季節資料");
                         }
                     }
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<List<SeasonalInfo>>> call,
-                                          @NonNull Throwable t) { }
+                                          @NonNull Throwable t) {
+                        progressBar.setVisibility(View.GONE);
+                        showError("網路錯誤: " + t.getMessage());
+                    }
                 });
+    }
+
+    private void showError(String message) {
+        tvError.setText(message);
+        layoutError.setVisibility(View.VISIBLE);
     }
 
     // ─── Adapter ────────────────────────────────────────────
