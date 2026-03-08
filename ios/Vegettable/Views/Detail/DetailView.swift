@@ -39,6 +39,7 @@ struct DetailView: View {
                         // 主價格卡
                         priceCard(detail)
 
+
                         // 日價格圖 (最近 7 天)
                         barChartCard(
                             title: "近 7 日價格走勢",
@@ -66,10 +67,20 @@ struct DetailView: View {
                     .padding(.horizontal, 14)
                     .padding(.bottom, 40)
                 }
+                .refreshable { loadData() }
             } else if let error = errorMessage {
-                Text(error)
-                    .font(.system(size: 14, design: .rounded))
-                    .foregroundColor(AppColors.textSecondary)
+                VStack(spacing: 14) {
+                    Image(systemName: "wifi.exclamationmark")
+                        .font(.system(size: 40))
+                        .foregroundColor(AppColors.textTertiary)
+                    Text(error)
+                        .font(.system(size: 14, design: .rounded))
+                        .foregroundColor(AppColors.textSecondary)
+                    Button("重試") { loadData() }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.primary)
+                        .clipShape(Capsule())
+                }
             }
         }
         .navigationTitle(cropName)

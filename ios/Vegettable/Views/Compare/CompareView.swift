@@ -4,6 +4,7 @@ struct CompareView: View {
     @State private var cropName = ""
     @State private var results: [MarketPrice] = []
     @State private var isLoading = false
+    @State private var errorMessage: String?
 
     var body: some View {
         ZStack {
@@ -37,6 +38,21 @@ struct CompareView: View {
                     Spacer()
                     ProgressView()
                         .tint(AppColors.primary)
+                    Spacer()
+                } else if let error = errorMessage {
+                    Spacer()
+                    VStack(spacing: 14) {
+                        Image(systemName: "wifi.exclamationmark")
+                            .font(.system(size: 40))
+                            .foregroundColor(AppColors.textTertiary)
+                        Text(error)
+                            .font(.system(size: 14, design: .rounded))
+                            .foregroundColor(AppColors.textSecondary)
+                        Button("重試") { compare() }
+                            .buttonStyle(.borderedProminent)
+                            .tint(AppColors.primary)
+                            .clipShape(Capsule())
+                    }
                     Spacer()
                 } else if results.isEmpty {
                     Spacer()
@@ -93,6 +109,7 @@ struct CompareView: View {
         guard !name.isEmpty else { return }
 
         isLoading = true
+        errorMessage = nil
         Task {
             do {
                 let result = try await ApiClient.shared.compareMarketPrices(cropName: name)
@@ -101,7 +118,10 @@ struct CompareView: View {
                     isLoading = false
                 }
             } catch {
-                await MainActor.run { isLoading = false }
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = "比價失敗: \(error.localizedDescription)"
+                }
             }
         }
     }

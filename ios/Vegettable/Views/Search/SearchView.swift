@@ -5,6 +5,7 @@ struct SearchView: View {
     @State private var keyword = ""
     @State private var results: [ProductSummary] = []
     @State private var isSearching = false
+    @State private var errorMessage: String?
     @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
@@ -22,6 +23,12 @@ struct SearchView: View {
                             .font(.system(size: 15, design: .rounded))
                             .textFieldStyle(.plain)
                             .onChange(of: keyword) { _ in debounceSearch() }
+
+                        if isSearching {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .tint(AppColors.primary)
+                        }
                     }
                     .padding(14)
                     .background(
@@ -45,24 +52,52 @@ struct SearchView: View {
                             .padding(.top, 10)
                     }
 
-                    ScrollView {
-                        LazyVStack(spacing: 10) {
-                            ForEach(results) { product in
-                                NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
-                                    ProductRow(
-                                        product: product,
-                                        isFavorite: settings.isFavorite(product.cropCode),
-                                        priceUnit: settings.priceUnit,
-                                        showRetail: settings.showRetailPrice,
-                                        onFavorite: { settings.toggleFavorite(product.cropCode) }
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
+                    if let error = errorMessage, results.isEmpty {
+                        Spacer()
+                        VStack(spacing: 14) {
+                            Image(systemName: "wifi.exclamationmark")
+                                .font(.system(size: 40))
+                                .foregroundColor(AppColors.textTertiary)
+                            Text(error)
+                                .font(.system(size: 14, design: .rounded))
+                                .foregroundColor(AppColors.textSecondary)
+                            Button("重試") { debounceSearch() }
+                                .buttonStyle(.borderedProminent)
+                                .tint(AppColors.primary)
+                                .clipShape(Capsule())
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.top, 8)
-                        .padding(.bottom, 100)
+                        Spacer()
+                    } else if results.isEmpty && !keyword.trimmingCharacters(in: .whitespaces).isEmpty && !isSearching {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 40))
+                                .foregroundColor(AppColors.textTertiary.opacity(0.5))
+                            Text("找不到「\(keyword)」的相關結果")
+                                .font(.system(size: 14, design: .rounded))
+                                .foregroundColor(AppColors.textTertiary)
+                        }
+                        Spacer()
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 10) {
+                                ForEach(results) { product in
+                                    NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
+                                        ProductRow(
+                                            product: product,
+                                            isFavorite: settings.isFavorite(product.cropCode),
+                                            priceUnit: settings.priceUnit,
+                                            showRetail: settings.showRetailPrice,
+                                            onFavorite: { settings.toggleFavorite(product.cropCode) }
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.top, 8)
+                            .padding(.bottom, 100)
+                        }
                     }
                 }
             }
@@ -73,12 +108,15 @@ struct SearchView: View {
 
     private func debounceSearch() {
         searchTask?.cancel()
+        errorMessage = nil
         let kw = keyword.trimmingCharacters(in: .whitespaces)
         guard !kw.isEmpty else {
             results = []
+            isSearching = false
             return
         }
 
+        isSearching = true
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 300_000_000)
             guard !Task.isCancelled else { return }
@@ -87,8 +125,16 @@ struct SearchView: View {
                 let searchResults = try await ApiClient.shared.searchProducts(keyword: kw)
                 await MainActor.run {
                     results = searchResults
+                    isSearching = false
                 }
-            } catch {}
+            } catch {
+                if !Task.isCancelled {
+                    await MainActor.run {
+                        isSearching = false
+                        errorMessage = "搜尋失敗: \(error.localizedDescription)"
+                    }
+                }
+            }
         }
     }
 }

@@ -75,7 +75,12 @@ class ApiClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.httpBody = try JSONEncoder().encode(body)
 
-        let (data, _) = try await session.data(for: request)
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw ApiError.serverError
+        }
+
         let apiResponse = try decoder.decode(ApiResponse<T>.self, from: data)
 
         guard apiResponse.success, let responseData = apiResponse.data else {
@@ -136,19 +141,27 @@ class ApiClient {
     func deleteAlert(id: Int, deviceToken: String) async throws {
         let encoded = deviceToken.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? deviceToken
         let urlString = "\(ApiEndpoints.baseURL)\(ApiEndpoints.alerts)/\(id)?deviceToken=\(encoded)"
-        guard let url = URL(string: urlString) else { return }
+        guard let url = URL(string: urlString) else { throw ApiError.invalidURL }
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
-        _ = try await session.data(for: request)
+        let (_, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw ApiError.serverError
+        }
     }
 
     func toggleAlert(id: Int, deviceToken: String) async throws {
         let encoded = deviceToken.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? deviceToken
         let urlString = "\(ApiEndpoints.baseURL)\(ApiEndpoints.alerts)/\(id)/toggle?deviceToken=\(encoded)"
-        guard let url = URL(string: urlString) else { return }
+        guard let url = URL(string: urlString) else { throw ApiError.invalidURL }
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
-        _ = try await session.data(for: request)
+        let (_, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw ApiError.serverError
+        }
     }
 
     // MARK: - Prediction / Seasonal / Recipes API

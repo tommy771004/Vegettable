@@ -4,6 +4,7 @@ struct SeasonalView: View {
     @State private var items: [SeasonalInfo] = []
     @State private var selectedCategory: String? = nil
     @State private var isLoading = false
+    @State private var errorMessage: String?
 
     private let categories = [("全部", nil as String?), ("蔬菜", "vegetable"), ("水果", "fruit")]
 
@@ -35,6 +36,32 @@ struct SeasonalView: View {
                     ProgressView()
                         .tint(AppColors.primary)
                     Spacer()
+                } else if let error = errorMessage {
+                    Spacer()
+                    VStack(spacing: 14) {
+                        Image(systemName: "wifi.exclamationmark")
+                            .font(.system(size: 40))
+                            .foregroundColor(AppColors.textTertiary)
+                        Text(error)
+                            .font(.system(size: 14, design: .rounded))
+                            .foregroundColor(AppColors.textSecondary)
+                        Button("重試") { loadSeasonal() }
+                            .buttonStyle(.borderedProminent)
+                            .tint(AppColors.primary)
+                            .clipShape(Capsule())
+                    }
+                    Spacer()
+                } else if items.isEmpty {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Image(systemName: "leaf.circle")
+                            .font(.system(size: 40))
+                            .foregroundColor(AppColors.textTertiary.opacity(0.5))
+                        Text("暫無當季資料")
+                            .font(.system(size: 14, design: .rounded))
+                            .foregroundColor(AppColors.textTertiary)
+                    }
+                    Spacer()
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 10) {
@@ -45,6 +72,7 @@ struct SeasonalView: View {
                         .padding(.horizontal, 14)
                         .padding(.bottom, 24)
                     }
+                    .refreshable { loadSeasonal() }
                 }
             }
         }
@@ -54,6 +82,7 @@ struct SeasonalView: View {
 
     private func loadSeasonal() {
         isLoading = true
+        errorMessage = nil
         Task {
             do {
                 let result = try await ApiClient.shared.fetchSeasonalInfo(category: selectedCategory)
@@ -62,7 +91,10 @@ struct SeasonalView: View {
                     isLoading = false
                 }
             } catch {
-                await MainActor.run { isLoading = false }
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = "載入失敗: \(error.localizedDescription)"
+                }
             }
         }
     }

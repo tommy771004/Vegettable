@@ -60,6 +60,17 @@
         android:textColor="@color/text_secondary"
         android:visibility="gone" />
 
+    <TextView
+        android:id="@+id/tv_search_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="10dp"
+        android:textSize="13sp"
+        android:textColor="#E53935"
+        android:visibility="gone" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_results"
         android:layout_width="match_parent"
