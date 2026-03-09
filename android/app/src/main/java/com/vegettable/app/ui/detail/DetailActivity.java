@@ -389,6 +389,15 @@ public class DetailActivity extends AppCompatActivity {
 
     private void displayRecipes(List<Recipe> recipes) {
         layoutRecipes.removeAllViews();
+
+        // 從 theme 取得顏色，支援 Dark Mode
+        TypedValue typedValue = new TypedValue();
+        getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true);
+        int primaryTextColor = typedValue.data;
+
+        getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnSurfaceVariant, typedValue, true);
+        int secondaryTextColor = typedValue.data;
+
         for (Recipe r : recipes) {
             LinearLayout item = new LinearLayout(this);
             item.setOrientation(LinearLayout.VERTICAL);
@@ -397,12 +406,12 @@ public class DetailActivity extends AppCompatActivity {
             TextView tvName = new TextView(this);
             tvName.setText(r.getName() + " (" + r.getCookTimeMinutes() + "分)");
             tvName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            tvName.setTextColor(Color.parseColor("#0F1419"));
+            tvName.setTextColor(primaryTextColor);
 
             TextView tvDesc = new TextView(this);
             tvDesc.setText(r.getDescription());
             tvDesc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-            tvDesc.setTextColor(Color.parseColor("#536471"));
+            tvDesc.setTextColor(secondaryTextColor);
 
             item.addView(tvName);
             item.addView(tvDesc);
