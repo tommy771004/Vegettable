@@ -23,6 +23,7 @@ public class AlertService : IAlertService
     public async Task<List<PriceAlertDto>> GetAlertsAsync(string deviceToken)
     {
         return await _db.PriceAlerts
+            .AsNoTracking()
             .Where(a => a.DeviceToken == deviceToken)
             .OrderByDescending(a => a.CreatedAt)
             .Select(a => new PriceAlertDto
@@ -98,8 +99,12 @@ public class AlertService : IAlertService
 
         if (activeAlerts.Count == 0) return;
 
+        // 只取得有活躍警示的作物名稱，避免載入所有產品
+        var neededCrops = activeAlerts.Select(a => a.CropName).Distinct().ToHashSet();
         var products = await _productService.GetRecentProductsAsync();
-        var priceMap = products.ToDictionary(p => p.CropName, p => p.AvgPrice);
+        var priceMap = products
+            .Where(p => neededCrops.Contains(p.CropName))
+            .ToDictionary(p => p.CropName, p => p.AvgPrice);
 
         foreach (var alert in activeAlerts)
         {

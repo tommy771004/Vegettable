@@ -1,10 +1,14 @@
 package com.vegettable.app.network;
 
 import android.app.Application;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
+import android.content.Context;
 
 import com.vegettable.app.BuildConfig;
 
 import okhttp3.Cache;
+import okhttp3.CacheControl;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -75,10 +79,22 @@ public class ApiClient {
             throw lastException != null ? lastException : new IOException("重試失敗");
         };
 
+        // 離線 fallback 攔截器 — 無網路時強制使用快取
+        Interceptor offlineFallbackInterceptor = chain -> {
+            Request req = chain.request();
+            if (appContext != null && !isNetworkAvailable()) {
+                req = req.newBuilder()
+                        .cacheControl(CacheControl.FORCE_CACHE)
+                        .build();
+            }
+            return chain.proceed(req);
+        };
+
         OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(15, TimeUnit.SECONDS)
+                .addInterceptor(offlineFallbackInterceptor)
                 .addInterceptor(retryInterceptor)
                 .addInterceptor(logging);
 
@@ -112,5 +128,15 @@ public class ApiClient {
 
     public ApiService getApi() {
         return apiService;
+    }
+
+    private static boolean isNetworkAvailable() {
+        if (appContext == null) return true;
+        ConnectivityManager cm = (ConnectivityManager) appContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return true;
+        NetworkCapabilities caps = cm.getNetworkCapabilities(cm.getActiveNetwork());
+        return caps != null && (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                || caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+                || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
     }
 }

@@ -177,6 +177,9 @@ using (var scope = app.Services.CreateScope())
 // 回應壓縮 (最先執行以壓縮所有回應)
 app.UseResponseCompression();
 
+// ETag / 304 — 減少重複傳輸
+app.UseMiddleware<ETagMiddleware>();
+
 // 安全性標頭
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
