@@ -25,9 +25,11 @@ public class ApiClient {
 
     private ApiClient() {
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+        logging.setLevel(BuildConfig.DEBUG
+                ? HttpLoggingInterceptor.Level.BODY
+                : HttpLoggingInterceptor.Level.NONE);
 
-        // 指數退避重試攔截器
+        // 指數退避重試攔截器（修正 response 洩漏問題）
         Interceptor retryInterceptor = chain -> {
             Request request = chain.request();
             Response response = null;
@@ -35,11 +37,16 @@ public class ApiClient {
 
             for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
                 try {
-                    if (response != null) response.close();
+                    // 在重試前關閉上一次的 response body，避免連線洩漏
+                    if (response != null) {
+                        response.close();
+                        response = null;
+                    }
                     response = chain.proceed(request);
                     if (response.isSuccessful()) return response;
-                    // 4xx 不重試
+                    // 4xx 不重試（用戶端錯誤，重試無意義）
                     if (response.code() >= 400 && response.code() < 500) return response;
+                    // 5xx 會重試，先關閉此次 response
                 } catch (IOException e) {
                     lastException = e;
                 }
@@ -47,9 +54,10 @@ public class ApiClient {
                     try {
                         long delay = (long) (1000 * Math.pow(2, attempt));
                         Thread.sleep(delay);
-                    } catch (InterruptedException ignored) {
+                    } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
-                        break;
+                        if (response != null) response.close();
+                        throw new IOException("重試被中斷", e);
                     }
                 }
             }

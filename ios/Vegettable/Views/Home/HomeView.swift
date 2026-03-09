@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var selectedCategory: CropCategory = .all
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var loadTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -90,18 +91,25 @@ struct HomeView: View {
     }
 
     private func loadProducts() {
+        // 取消前一次未完成的請求，避免競態條件
+        loadTask?.cancel()
+
         isLoading = true
         errorMessage = nil
 
-        Task {
+        loadTask = Task {
             do {
                 let result = try await ApiClient.shared.fetchProducts(category: selectedCategory.apiValue)
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
                     products = result
                     isLoading = false
                     settings.cacheProducts(result)
                 }
+            } catch is CancellationError {
+                // 被取消的請求不處理
             } catch {
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
                     isLoading = false
                     errorMessage = "載入失敗: \(error.localizedDescription)"

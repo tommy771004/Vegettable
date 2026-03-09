@@ -54,6 +54,13 @@ builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
 builder.Services.Configure<GzipCompressionProviderOptions>(options =>
     options.Level = CompressionLevel.Fastest);
 
+// HttpClient for Expo Push Notifications (避免 HttpClient 洩漏)
+builder.Services.AddHttpClient("ExpoPush", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
 // --- Application services ---
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IMarketService, MarketService>();

@@ -60,16 +60,15 @@ public class DataFetchBackgroundService : BackgroundService
 
         if (data.Count == 0) return;
 
-        // 移除舊的快取資料 (7天前)
+        // 移除舊的快取資料 (7天前) — 直接在資料庫端刪除，避免將大量資料載入記憶體
         var cutoff = DateTime.UtcNow.AddDays(-7);
-        var oldEntries = await db.CachedDailyPrices
+        var deletedCount = await db.CachedDailyPrices
             .Where(c => c.FetchedAt < cutoff)
-            .ToListAsync(ct);
+            .ExecuteDeleteAsync(ct);
 
-        if (oldEntries.Count > 0)
+        if (deletedCount > 0)
         {
-            db.CachedDailyPrices.RemoveRange(oldEntries);
-            _logger.LogInformation("Removed {Count} stale cache entries", oldEntries.Count);
+            _logger.LogInformation("Removed {Count} stale cache entries", deletedCount);
         }
 
         // 批次查詢已存在的記錄鍵值，避免 N+1 問題

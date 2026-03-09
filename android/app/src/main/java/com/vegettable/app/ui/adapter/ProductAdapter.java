@@ -8,6 +8,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.vegettable.app.R;
@@ -35,19 +36,42 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
         this.favorites = favorites;
     }
 
-    public void setItems(List<ProductSummary> items) {
-        this.items = items;
-        notifyDataSetChanged();
+    public void setItems(List<ProductSummary> newItems) {
+        DiffUtil.DiffResult result = DiffUtil.calculateDiff(new DiffUtil.Callback() {
+            @Override
+            public int getOldListSize() { return items.size(); }
+            @Override
+            public int getNewListSize() { return newItems.size(); }
+            @Override
+            public boolean areItemsTheSame(int oldPos, int newPos) {
+                return items.get(oldPos).getCropCode().equals(newItems.get(newPos).getCropCode());
+            }
+            @Override
+            public boolean areContentsTheSame(int oldPos, int newPos) {
+                ProductSummary o = items.get(oldPos);
+                ProductSummary n = newItems.get(newPos);
+                return o.getCropCode().equals(n.getCropCode())
+                        && o.getAvgPrice() == n.getAvgPrice()
+                        && java.util.Objects.equals(o.getPriceLevel(), n.getPriceLevel())
+                        && java.util.Objects.equals(o.getTrend(), n.getTrend());
+            }
+        });
+        this.items = newItems;
+        result.dispatchUpdatesTo(this);
     }
 
     public void setPriceUnit(String unit) {
-        this.priceUnit = unit;
-        notifyDataSetChanged();
+        if (!this.priceUnit.equals(unit)) {
+            this.priceUnit = unit;
+            notifyItemRangeChanged(0, items.size());
+        }
     }
 
     public void setShowRetail(boolean showRetail) {
-        this.showRetail = showRetail;
-        notifyDataSetChanged();
+        if (this.showRetail != showRetail) {
+            this.showRetail = showRetail;
+            notifyItemRangeChanged(0, items.size());
+        }
     }
 
     @NonNull

@@ -42,6 +42,7 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
     private PrefsManager prefs;
     private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
     private Runnable searchRunnable;
+    private Call<ApiResponse<List<ProductSummary>>> currentSearchCall;
 
     @Nullable
     @Override
@@ -101,10 +102,15 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
             return;
         }
 
+        // 取消前一次尚未完成的搜尋請求
+        if (currentSearchCall != null) {
+            currentSearchCall.cancel();
+        }
+
         if (tvSearchError != null) tvSearchError.setVisibility(View.GONE);
 
-        ApiClient.getInstance().getApi().searchProducts(keyword)
-                .enqueue(new Callback<ApiResponse<List<ProductSummary>>>() {
+        currentSearchCall = ApiClient.getInstance().getApi().searchProducts(keyword);
+        currentSearchCall.enqueue(new Callback<ApiResponse<List<ProductSummary>>>() {
                     @Override
                     public void onResponse(@NonNull Call<ApiResponse<List<ProductSummary>>> call,
                                            @NonNull Response<ApiResponse<List<ProductSummary>>> response) {
@@ -144,7 +150,7 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
     @Override
     public void onFavoriteClick(ProductSummary product) {
         prefs.toggleFavorite(product.getCropCode());
-        adapter.notifyDataSetChanged();
+        adapter.notifyItemRangeChanged(0, adapter.getItemCount());
     }
 
     @Override
@@ -152,6 +158,9 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
         super.onDestroyView();
         if (searchRunnable != null) {
             handler.removeCallbacks(searchRunnable);
+        }
+        if (currentSearchCall != null) {
+            currentSearchCall.cancel();
         }
     }
 }
