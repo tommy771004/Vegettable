@@ -6,7 +6,14 @@ struct SeasonalView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
 
-    private let categories = [("全部", nil as String?), ("蔬菜", "vegetable"), ("水果", "fruit")]
+    private let categories: [(label: String, value: String?)] = [
+        ("全部", nil),
+        ("蔬菜", "vegetable"),
+        ("水果", "fruit"),
+        ("魚產", "fish"),
+        ("畜禽", "poultry"),
+        ("白米", "rice"),
+    ]
 
     var body: some View {
         ZStack {

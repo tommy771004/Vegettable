@@ -80,6 +80,8 @@ struct SkeletonListView: View {
 
 // MARK: - 離線狀態橫幅
 struct OfflineBanner: View {
+    @State private var isVisible = false
+
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "wifi.slash")
@@ -92,5 +94,12 @@ struct OfflineBanner: View {
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
         .background(Color.orange.opacity(0.9))
+        .offset(y: isVisible ? 0 : -50)
+        .opacity(isVisible ? 1 : 0)
+        .onAppear {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                isVisible = true
+            }
+        }
     }
 }
