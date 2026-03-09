@@ -74,7 +74,7 @@ jobs:
         # 請根據您的專案類型(project 或 workspace)、Scheme 名稱進行修改
         run: |
           xcodebuild test \
-            -project YourApp.xcodeproj \
+            -workspace Vegettable.xcworkspace
             -scheme YourAppScheme \
             -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
         working-directory: ./ios # [請修改] 換成您的 iOS 資料夾路徑
