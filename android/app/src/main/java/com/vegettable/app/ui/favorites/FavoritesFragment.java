@@ -12,6 +12,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -35,6 +36,7 @@ public class FavoritesFragment extends Fragment implements ProductAdapter.OnItem
 
     private RecyclerView rvFavorites;
     private TextView tvEmpty, tvFavCount;
+    private SwipeRefreshLayout swipeRefresh;
     private ProductAdapter adapter;
     private PrefsManager prefs;
 
@@ -54,11 +56,15 @@ public class FavoritesFragment extends Fragment implements ProductAdapter.OnItem
         rvFavorites = view.findViewById(R.id.rv_favorites);
         tvEmpty = view.findViewById(R.id.tv_empty);
         tvFavCount = view.findViewById(R.id.tv_fav_count);
+        swipeRefresh = view.findViewById(R.id.swipe_refresh);
 
         rvFavorites.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new ProductAdapter(this, prefs.getFavorites());
         adapter.setPriceUnit(prefs.getPriceUnit());
         rvFavorites.setAdapter(adapter);
+
+        swipeRefresh.setColorSchemeResources(android.R.color.holo_green_dark);
+        swipeRefresh.setOnRefreshListener(this::loadFavorites);
 
         loadFavorites();
     }
@@ -73,6 +79,7 @@ public class FavoritesFragment extends Fragment implements ProductAdapter.OnItem
         Set<String> favCodes = prefs.getFavorites();
 
         if (favCodes.isEmpty()) {
+            swipeRefresh.setRefreshing(false);
             tvEmpty.setVisibility(View.VISIBLE);
             rvFavorites.setVisibility(View.GONE);
             tvFavCount.setText("0 項收藏");
@@ -94,6 +101,7 @@ public class FavoritesFragment extends Fragment implements ProductAdapter.OnItem
                     }
                 }
                 if (!favProducts.isEmpty()) {
+                    swipeRefresh.setRefreshing(false);
                     adapter.setItems(favProducts);
                     rvFavorites.setVisibility(View.VISIBLE);
                     tvEmpty.setVisibility(View.GONE);
@@ -109,6 +117,7 @@ public class FavoritesFragment extends Fragment implements ProductAdapter.OnItem
                     public void onResponse(@NonNull Call<ApiResponse<List<ProductSummary>>> call,
                                            @NonNull Response<ApiResponse<List<ProductSummary>>> response) {
                         if (!isAdded()) return;
+                        swipeRefresh.setRefreshing(false);
                         if (response.isSuccessful() && response.body() != null
                                 && response.body().isSuccess() && response.body().getData() != null) {
                             List<ProductSummary> favProducts = new ArrayList<>();
@@ -127,6 +136,7 @@ public class FavoritesFragment extends Fragment implements ProductAdapter.OnItem
                     public void onFailure(@NonNull Call<ApiResponse<List<ProductSummary>>> call,
                                           @NonNull Throwable t) {
                         if (!isAdded()) return;
+                        swipeRefresh.setRefreshing(false);
                         tvEmpty.setVisibility(View.VISIBLE);
                     }
                 });

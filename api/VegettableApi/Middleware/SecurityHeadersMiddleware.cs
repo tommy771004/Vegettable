@@ -31,11 +31,10 @@ public class SecurityHeadersMiddleware
         // Content Security Policy
         headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'";
 
-        // 快取控制 — API 回應預設不快取
+        // 快取控制 — API 回應短期快取 (前端 mapping: 5 分鐘)
         if (context.Request.Path.StartsWithSegments("/api"))
         {
-            headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
-            headers["Pragma"] = "no-cache";
+            headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60";
         }
 
         await _next(context);
