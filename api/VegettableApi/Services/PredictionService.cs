@@ -34,7 +34,7 @@ public class PredictionService : IPredictionService
     {
         var detail = await _productService.GetProductDetailAsync(cropName);
 
-        var dailyPrices = detail.DailyPrices.Select(d => d.AvgPrice).ToList();
+        var dailyPrices = detail.DailyPricesForPrediction.Select(d => d.AvgPrice).ToList();
         var monthlyPrices = detail.MonthlyPrices.Select(m => m.AvgPrice).ToList();
 
         if (dailyPrices.Count < 2)

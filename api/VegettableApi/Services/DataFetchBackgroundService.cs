@@ -29,16 +29,31 @@ public class DataFetchBackgroundService : BackgroundService
         // 等待應用程式啟動完成
         await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
 
+        int consecutiveFailures = 0;
+        const int maxConsecutiveFailures = 3;
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 await FetchAndCacheDataAsync(stoppingToken);
                 await CheckPriceAlertsAsync(stoppingToken);
+                consecutiveFailures = 0; // 成功後重置
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogError(ex, "Background data fetch failed");
+                consecutiveFailures++;
+                _logger.LogError(ex, "Background data fetch failed (consecutive failures: {Count})", consecutiveFailures);
+
+                if (consecutiveFailures >= maxConsecutiveFailures)
+                {
+                    // 指數退避：2^n * 基本間隔，最長 30 分鐘
+                    var backoffMinutes = Math.Min(Math.Pow(2, consecutiveFailures - maxConsecutiveFailures) * 5, 30);
+                    var backoff = TimeSpan.FromMinutes(backoffMinutes);
+                    _logger.LogWarning("Circuit breaker: backing off for {Minutes} minutes due to repeated failures", backoffMinutes);
+                    await Task.Delay(backoff, stoppingToken);
+                    continue;
+                }
             }
 
             await Task.Delay(FetchInterval, stoppingToken);
@@ -72,9 +87,10 @@ public class DataFetchBackgroundService : BackgroundService
         }
 
         // 批次查詢已存在的記錄鍵值，避免 N+1 問題
-        var existingKeys = await db.CachedDailyPrices
+        var existingKeysList = await db.CachedDailyPrices
             .Select(c => c.CropName + "|" + c.MarketName + "|" + c.TransDate)
-            .ToHashSetAsync(ct);
+            .ToListAsync(ct);
+        var existingKeys = new HashSet<string>(existingKeysList);
 
         var newEntries = data
             .Where(item => !existingKeys.Contains(item.CropName + "|" + item.MarketName + "|" + item.TransDate))

@@ -71,12 +71,21 @@ for (const file of modelFiles) {
         const classBody = content.substring(classStart, classEnd);
 
         const props = [];
-        // 只匹配 { get; set; } 或 { get; init; } 的屬性
+        // 先找出所有被 [JsonIgnore] (含命名空間前綴) 修飾的屬性名稱
+        const jsonIgnoreRegex = /\[(?:[\w.]*)?JsonIgnore\][^\n]*\n\s*public\s+[\w<>?,\s]+?\s+(\w+)\s*\{\s*get;\s*(?:set|init);/g;
+        const jsonIgnoreFields = new Set();
+        let ji;
+        while ((ji = jsonIgnoreRegex.exec(classBody)) !== null) {
+            jsonIgnoreFields.add(ji[1]);
+        }
+
+        // 只匹配 { get; set; } 或 { get; init; } 的屬性，並跳過 [JsonIgnore] 標記的屬性
         const propRegex = /public\s+([\w<>?,\s]+?)\s+(\w+)\s*\{\s*get;\s*(?:set|init);/g;
         let m;
         while ((m = propRegex.exec(classBody)) !== null) {
-            const type = m[1].trim();
             const name = m[2];
+            if (jsonIgnoreFields.has(name)) continue; // 跳過 JsonIgnore 屬性
+            const type = m[1].trim();
             const camel = name.charAt(0).toLowerCase() + name.slice(1);
             props.push({ name, camelCase: camel, type });
         }
@@ -240,19 +249,30 @@ const expectedEndpoints = [
 ];
 
 for (const ep of expectedEndpoints) {
-    // 轉換路由為正則
-    const pathPattern = ep.path.replace(/\{[^}]+\}/g, '[^/]+');
+    // 將路徑參數替換為固定字串用於比對
+    const normalizedPath = ep.path.replace(/\{[^}]+\}/g, '');
 
-    // 驗證 iOS
-    const iosMatch = iosApiClient.includes(ep.path.replace(/\{[^}]+\}/g, '')) ||
-                     iosApiClient.includes(ep.path.split('/').slice(0, -1).join('/'));
-    assert(iosMatch || iosApiClient.includes('/api/'), `iOS 應有端點: ${ep.method} ${ep.path} (${ep.desc})`);
+    // 精確比對路徑片段：片段須緊接 /、"、' 或字串開頭，避免 "product" 誤配 "products"
+    const segPresentIn = (text, seg) =>
+        text.includes('/' + seg) || text.includes('"' + seg) || text.includes("'" + seg);
 
-    // 驗證 Android
-    const androidMatch = androidApiService.includes(ep.path.replace(/\{[^}]+\}/g, '').replace(/\/$/, ''));
-    assert(androidMatch || androidApiService.includes('api/'), `Android 應有端點: ${ep.method} ${ep.path} (${ep.desc})`);
+    // iOS 驗證：精確比對路徑片段
+    const iosMatch = iosApiClient.includes(normalizedPath) ||
+                     ep.path.split('/').filter(Boolean).every(seg =>
+                         seg.startsWith('{') || segPresentIn(iosApiClient, seg)
+                     );
+    assert(iosMatch, `iOS 應有端點: ${ep.method} ${ep.path} (${ep.desc})`);
 
-    console.log(`  ✓ ${ep.method} ${ep.path} — ${ep.desc}`);
+    // Android 驗證：精確比對路徑
+    const androidMatch = androidApiService.includes(normalizedPath) ||
+                         ep.path.split('/').filter(Boolean).every(seg =>
+                             seg.startsWith('{') || segPresentIn(androidApiService, seg)
+                         );
+    assert(androidMatch, `Android 應有端點: ${ep.method} ${ep.path} (${ep.desc})`);
+
+    if (iosMatch && androidMatch) {
+        console.log(`  ✓ ${ep.method} ${ep.path} — ${ep.desc}`);
+    }
 }
 
 // ─── 5. 驗證型別相容性 ──────────────────────────────────────

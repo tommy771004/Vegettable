@@ -11,6 +11,17 @@ var builder = WebApplication.CreateBuilder(args);
 // --- Services ---
 
 builder.Services.AddControllers();
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new Asp.Versioning.ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = new Asp.Versioning.UrlSegmentApiVersionReader();
+}).AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -31,6 +42,9 @@ builder.Services.AddMemoryCache(options =>
 {
     options.SizeLimit = 256;
 });
+
+// 分散式快取介面（目前使用記憶體實作，可替換為 Redis）
+builder.Services.AddDistributedMemoryCache();
 
 // HttpClient for MOA Open Data
 builder.Services.AddHttpClient<IMoaApiService, MoaApiService>(client =>
@@ -133,8 +147,7 @@ builder.Services.AddCors(options =>
             policy
                 .WithOrigins(
                     "https://vegettable.app",
-                    "https://www.vegettable.app",
-                    "exp://localhost:8081")
+                    "https://www.vegettable.app")
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
