@@ -36,10 +36,16 @@ class ApiClient {
     private let maxRetries = 3
     private let baseDelay: TimeInterval = 1.0
 
+    /// ETag 快取 — 記錄每個請求的最新 ETag
+    private static var etagCache: [String: String] = [:]
+
     private init() {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 60
+        // HTTP/2 multiplexing — 允許多請求共用同一連線
+        config.httpMaximumConnectionsPerHost = 6
+        config.multipathServiceType = .none
         session = URLSession(configuration: config)
         decoder = JSONDecoder()
     }
@@ -93,15 +99,34 @@ class ApiClient {
                 request.setValue("application/json", forHTTPHeaderField: "Accept")
                 request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
 
+                // ETag — 傳送上次快取的 ETag 以支援 304
+                if let cachedETag = Self.etagCache[cacheKey] {
+                    request.setValue(cachedETag, forHTTPHeaderField: "If-None-Match")
+                }
+
                 let (data, response) = try await session.data(for: request)
 
-                guard let httpResponse = response as? HTTPURLResponse,
-                      (200...299).contains(httpResponse.statusCode) else {
-                    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-                    if statusCode == 404 {
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw ApiError.serverError
+                }
+
+                // 304 Not Modified — 使用磁碟快取
+                if httpResponse.statusCode == 304 {
+                    if let cached: T = DiskCacheManager.shared.getStaleCache(key: cacheKey) {
+                        return cached
+                    }
+                }
+
+                guard (200...299).contains(httpResponse.statusCode) else {
+                    if httpResponse.statusCode == 404 {
                         throw ApiError.notFound
                     }
                     throw ApiError.serverError
+                }
+
+                // 儲存伺服器回傳的 ETag
+                if let etag = httpResponse.value(forHTTPHeaderField: "ETag") {
+                    Self.etagCache[cacheKey] = etag
                 }
 
                 let apiResponse = try decoder.decode(ApiResponse<T>.self, from: data)

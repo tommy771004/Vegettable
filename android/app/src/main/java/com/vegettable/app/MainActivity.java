@@ -60,8 +60,6 @@ public class MainActivity extends AppCompatActivity {
             PermissionManager.requestNotificationPermission(this, notificationLauncher);
         }
 
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
-
         homeFragment = new HomeFragment();
         searchFragment = new SearchFragment();
         favoritesFragment = new FavoritesFragment();
