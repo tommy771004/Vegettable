@@ -15,6 +15,21 @@ public class PredictionService : IPredictionService
         _productService = productService;
     }
 
+    /// <summary>
+    /// Predicts the given crop's price seven days ahead using a simple linear regression on recent daily averages and an optional seasonal adjustment from historical same-month averages.
+    /// </summary>
+    /// <param name="cropName">The name of the crop to generate a price prediction for.</param>
+    /// <returns>
+    /// A <see cref="PredictionDto"/> containing:
+    /// - CropName: the requested crop name;
+    /// - CurrentPrice: the most recent average price (rounded to 1 decimal);
+    /// - PredictedPrice: the forecasted price for 7 days ahead (rounded to 1 decimal), clamped to at least 0.1;
+    /// - ChangePercent: percent change from current to predicted price (rounded to 1 decimal);
+    /// - Direction: "up", "down", or "stable" based on ChangePercent thresholds;
+    /// - Confidence: an integer score (10–90) reflecting data quantity and volatility;
+    /// - Reasoning: a brief explanation of the prediction and applied adjustments.
+    /// If there are fewer than two daily price points, the returned DTO will have CurrentPrice and PredictedPrice equal to the current average price, ChangePercent = 0, Direction = "stable", Confidence = 20, and a reasoning string indicating insufficient data.
+    /// </returns>
     public async Task<PredictionDto> PredictPriceAsync(string cropName)
     {
         var detail = await _productService.GetProductDetailAsync(cropName);
@@ -90,6 +105,11 @@ public class PredictionService : IPredictionService
         };
     }
 
+    /// <summary>
+    /// Retrieve seasonal information for crops, indicating whether each crop is currently in season.
+    /// </summary>
+    /// <param name="category">Optional category filter (e.g., "vegetable" or "fruit"); if null or whitespace, returns all categories.</param>
+    /// <returns>A list of <see cref="SeasonalInfoDto"/> with <see cref="SeasonalInfoDto.IsInSeason"/> set based on the current month; results are ordered with in-season items first, then by crop name.</returns>
     public List<SeasonalInfoDto> GetSeasonalInfo(string? category = null)
     {
         var currentMonth = DateTime.Today.Month;
@@ -110,6 +130,11 @@ public class PredictionService : IPredictionService
             .ToList();
     }
 
+    /// <summary>
+    /// Filters recipes to those that include the specified crop name as a substring of any ingredient (case-sensitive).
+    /// </summary>
+    /// <param name="cropName">The crop name or substring to match against each ingredient. An empty string will match all recipes.</param>
+    /// <returns>A list of recipes whose Ingredients contain an entry that includes <paramref name="cropName"/>.</returns>
     public List<RecipeDto> GetRecipesForCrop(string cropName)
     {
         return RecipeData

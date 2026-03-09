@@ -17,6 +17,11 @@ let passed = 0;
 let failed = 0;
 const errors = [];
 
+/**
+ * Record the result of an assertion by updating global pass/fail counters and recording failures.
+ * @param {boolean} condition - The condition expected to be true for the assertion to pass.
+ * @param {string} message - Description appended to the failure log when the condition is false.
+ */
 function assert(condition, message) {
     if (condition) {
         passed++;
@@ -26,6 +31,11 @@ function assert(condition, message) {
     }
 }
 
+/**
+ * Read a UTF-8 file from the project root and return its contents.
+ * @param {string} filePath - Path to the file relative to the project root.
+ * @return {string} The file contents decoded as UTF-8.
+ */
 function readFile(filePath) {
     return fs.readFileSync(path.resolve(__dirname, '..', filePath), 'utf-8');
 }
@@ -82,7 +92,14 @@ console.log('\n=== 2. iOS Model 欄位驗證 ===\n');
 
 const iosModels = readFile('ios/Vegettable/Models/Models.swift');
 
-// 提取 Swift struct 的欄位
+/**
+ * Extracts declared properties from a Swift `struct` by name.
+ *
+ * Searches the in-memory `iosModels` source for `struct <structName> { ... }` and returns each `var`/`let` declaration found inside the struct. Computed properties (those whose type portion contains a `{`) are skipped.
+ *
+ * @param {string} structName - The exact Swift struct name to locate.
+ * @returns {{name: string, type: string}[]} An array of field descriptors; each object has `name` (the Swift property name) and `type` (the declared type string).
+ */
 function extractSwiftFields(structName) {
     const regex = new RegExp(`struct ${structName}[^{]*\\{([^}]+(?:\\{[^}]*\\}[^}]*)*)\\}`, 's');
     const match = iosModels.match(regex);
