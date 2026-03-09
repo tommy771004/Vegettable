@@ -26,25 +26,31 @@ public class ExceptionMiddleware
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "外部 API 請求失敗");
+            _logger.LogError(ex, "外部 API 請求失敗: {Method} {Path}", context.Request.Method, context.Request.Path);
             await WriteErrorResponseAsync(context, HttpStatusCode.BadGateway,
                 "農業部資料服務暫時無法連線，請稍後再試");
         }
-        catch (TaskCanceledException ex)
+        catch (TaskCanceledException ex) when (!context.RequestAborted.IsCancellationRequested)
         {
-            _logger.LogWarning(ex, "請求逾時");
+            // 區分逾時 vs 用戶端主動取消
+            _logger.LogWarning(ex, "請求逾時: {Method} {Path}", context.Request.Method, context.Request.Path);
             await WriteErrorResponseAsync(context, HttpStatusCode.GatewayTimeout,
                 "農業部資料服務回應逾時，請稍後再試");
         }
+        catch (TaskCanceledException)
+        {
+            // 用戶端主動中斷連線，不需回應
+            _logger.LogDebug("用戶端中斷連線: {Method} {Path}", context.Request.Method, context.Request.Path);
+        }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "JSON 解析失敗");
+            _logger.LogError(ex, "JSON 解析失敗: {Method} {Path}", context.Request.Method, context.Request.Path);
             await WriteErrorResponseAsync(context, HttpStatusCode.BadGateway,
                 "農業部資料格式異常，請稍後再試");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "未預期的錯誤");
+            _logger.LogError(ex, "未預期的錯誤: {Method} {Path}", context.Request.Method, context.Request.Path);
             await WriteErrorResponseAsync(context, HttpStatusCode.InternalServerError,
                 "伺服器內部錯誤，請稍後再試");
         }

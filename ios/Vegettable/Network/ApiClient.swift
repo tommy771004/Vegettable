@@ -57,15 +57,17 @@ class ApiClient {
     // MARK: - 通用 GET（含重試）
     private func get<T: Codable>(path: String, params: [String: String]? = nil) async throws -> T {
         try await withRetry { [self] in
-            var urlString = ApiEndpoints.baseURL + path
-            if let params = params, !params.isEmpty {
-                let queryItems = params.map { URLQueryItem(name: $0.key, value: $0.value) }
-                var components = URLComponents(string: urlString)!
-                components.queryItems = queryItems
-                urlString = components.url!.absoluteString
+            let urlString = ApiEndpoints.baseURL + path
+
+            guard var components = URLComponents(string: urlString) else {
+                throw ApiError.invalidURL
             }
 
-            guard let url = URL(string: urlString) else {
+            if let params = params, !params.isEmpty {
+                components.queryItems = params.map { URLQueryItem(name: $0.key, value: $0.value) }
+            }
+
+            guard let url = components.url else {
                 throw ApiError.invalidURL
             }
 

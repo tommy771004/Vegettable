@@ -10,12 +10,14 @@ public class AlertService : IAlertService
     private readonly AppDbContext _db;
     private readonly IProductService _productService;
     private readonly ILogger<AlertService> _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public AlertService(AppDbContext db, IProductService productService, ILogger<AlertService> logger)
+    public AlertService(AppDbContext db, IProductService productService, ILogger<AlertService> logger, IHttpClientFactory httpClientFactory)
     {
         _db = db;
         _productService = productService;
         _logger = logger;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<List<PriceAlertDto>> GetAlertsAsync(string deviceToken)
@@ -128,7 +130,7 @@ public class AlertService : IAlertService
 
         try
         {
-            using var http = new HttpClient();
+            var http = _httpClientFactory.CreateClient("ExpoPush");
             var payload = new
             {
                 to = alert.DeviceToken,

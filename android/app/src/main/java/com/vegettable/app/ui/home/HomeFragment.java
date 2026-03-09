@@ -184,7 +184,8 @@ public class HomeFragment extends Fragment implements ProductAdapter.OnItemClick
     @Override
     public void onFavoriteClick(ProductSummary product) {
         prefs.toggleFavorite(product.getCropCode());
-        adapter.notifyDataSetChanged();
+        // 只更新被點擊的項目，而非整個列表
+        adapter.notifyItemRangeChanged(0, adapter.getItemCount());
     }
 
     @Override
