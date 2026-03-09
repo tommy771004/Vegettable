@@ -15,7 +15,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PriceAlert>(e =>
         {
             e.HasIndex(a => a.DeviceToken);
-            e.HasIndex(a => new { a.CropName, a.IsActive });
+            e.HasIndex(a => a.IsActive); // 用於背景服務查詢所有活躍警示
+            e.HasIndex(a => new { a.IsActive, a.CropName }); // 組合查詢優化
+            e.HasIndex(a => new { a.DeviceToken, a.IsActive }); // 用戶特定警示查詢
         });
 
         modelBuilder.Entity<CachedDailyPrice>(e =>

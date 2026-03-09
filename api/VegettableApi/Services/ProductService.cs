@@ -132,6 +132,48 @@ public class ProductService : IProductService
         ).ToList();
     }
 
+    public async Task<PaginatedResponse<ProductSummaryDto>> GetRecentProductsPaginatedAsync(
+        string? category = null, int offset = 0, int limit = 20)
+    {
+        // 驗證分頁參數
+        limit = Math.Max(1, Math.Min(limit, 100)); // 限制 1-100
+        offset = Math.Max(0, offset);
+
+        var allProducts = await GetRecentProductsAsync(category);
+        var total = allProducts.Count;
+        var items = allProducts.Skip(offset).Take(limit).ToList();
+
+        return new PaginatedResponse<ProductSummaryDto>
+        {
+            Items = items,
+            Offset = offset,
+            Limit = limit,
+            Total = total,
+            HasMore = offset + limit < total,
+        };
+    }
+
+    public async Task<PaginatedResponse<ProductSummaryDto>> SearchProductsPaginatedAsync(
+        string keyword, int offset = 0, int limit = 20)
+    {
+        // 驗證分頁參數
+        limit = Math.Max(1, Math.Min(limit, 100));
+        offset = Math.Max(0, offset);
+
+        var results = await SearchProductsAsync(keyword);
+        var total = results.Count;
+        var items = results.Skip(offset).Take(limit).ToList();
+
+        return new PaginatedResponse<ProductSummaryDto>
+        {
+            Items = items,
+            Offset = offset,
+            Limit = limit,
+            Total = total,
+            HasMore = offset + limit < total,
+        };
+    }
+
     // ─── Private helpers ───────────────────────────────────────
 
     private async Task<Dictionary<string, decimal>> FetchHistoricalAverageAsync()

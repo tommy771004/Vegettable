@@ -32,6 +32,23 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
+    /// 取得近期產品行情列表（支援分頁）
+    /// </summary>
+    /// <param name="category">主類別篩選</param>
+    /// <param name="offset">分頁起始位置 (0-based)</param>
+    /// <param name="limit">每頁筆數 (1-100，預設 20)</param>
+    [HttpGet("paginated")]
+    [ProducesResponseType(typeof(ApiResponse<PaginatedResponse<ProductSummaryDto>>), 200)]
+    public async Task<IActionResult> GetRecentProductsPaginated(
+        [FromQuery] string? category = null,
+        [FromQuery] int offset = 0,
+        [FromQuery] int limit = 20)
+    {
+        var result = await _productService.GetRecentProductsPaginatedAsync(category, offset, limit);
+        return Ok(ApiResponse<PaginatedResponse<ProductSummaryDto>>.Ok(result));
+    }
+
+    /// <summary>
     /// 搜尋產品（支援別名搜尋，如「地瓜」可找到「甘薯」）
     /// </summary>
     /// <param name="keyword">搜尋關鍵字</param>
@@ -44,6 +61,26 @@ public class ProductsController : ControllerBase
 
         var results = await _productService.SearchProductsAsync(keyword);
         return Ok(ApiResponse<List<ProductSummaryDto>>.Ok(results));
+    }
+
+    /// <summary>
+    /// 搜尋產品（支援分頁）
+    /// </summary>
+    /// <param name="keyword">搜尋關鍵字</param>
+    /// <param name="offset">分頁起始位置 (0-based)</param>
+    /// <param name="limit">每頁筆數 (1-100，預設 20)</param>
+    [HttpGet("search/paginated")]
+    [ProducesResponseType(typeof(ApiResponse<PaginatedResponse<ProductSummaryDto>>), 200)]
+    public async Task<IActionResult> SearchProductsPaginated(
+        [FromQuery] string keyword,
+        [FromQuery] int offset = 0,
+        [FromQuery] int limit = 20)
+    {
+        if (string.IsNullOrWhiteSpace(keyword))
+            return BadRequest(ApiResponse<object>.Fail("請輸入搜尋關鍵字"));
+
+        var result = await _productService.SearchProductsPaginatedAsync(keyword, offset, limit);
+        return Ok(ApiResponse<PaginatedResponse<ProductSummaryDto>>.Ok(result));
     }
 
     /// <summary>

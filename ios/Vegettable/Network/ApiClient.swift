@@ -9,7 +9,9 @@ enum ApiEndpoints {
     #endif
 
     static let products = "/api/products"
+    static let productsPaginated = "/api/products/paginated"
     static let searchProducts = "/api/products/search"
+    static let searchProductsPaginated = "/api/products/search/paginated"
     static let markets = "/api/markets"
     static let marketCompare = "/api/markets/compare"
     static let alerts = "/api/alerts"
@@ -54,9 +56,18 @@ class ApiClient {
         throw lastError ?? ApiError.serverError
     }
 
-    // MARK: - 通用 GET（含重試）
+    // MARK: - 通用 GET（含重試 + 磁碟快取）
     private func get<T: Codable>(path: String, params: [String: String]? = nil) async throws -> T {
-        try await withRetry { [self] in
+        // 構建快取 key
+        let cacheKey = "\(path):\(params?.sorted(by: { $0.key < $1.key }).description ?? "")"
+
+        // 先檢查磁碟快取
+        if let cached: T = DiskCacheManager.shared.getCached(key: cacheKey) {
+            return cached
+        }
+
+        // 發起網路請求
+        return try await withRetry { [self] in
             let urlString = ApiEndpoints.baseURL + path
 
             guard var components = URLComponents(string: urlString) else {
@@ -86,6 +97,9 @@ class ApiClient {
             guard apiResponse.success, let responseData = apiResponse.data else {
                 throw ApiError.apiError(apiResponse.message ?? "資料取得失敗")
             }
+
+            // 存入磁碟快取
+            DiskCacheManager.shared.setCached(responseData, key: cacheKey)
 
             return responseData
         }
@@ -128,8 +142,28 @@ class ApiClient {
         return try await get(path: ApiEndpoints.products, params: params)
     }
 
+    func fetchProductsPaginated(category: String? = nil, offset: Int = 0, limit: Int = 20) async throws -> PaginatedResponse<ProductSummary> {
+        var params: [String: String] = [
+            "offset": String(offset),
+            "limit": String(limit)
+        ]
+        if let category = category, category != "all" {
+            params["category"] = category
+        }
+        return try await get(path: ApiEndpoints.productsPaginated, params: params)
+    }
+
     func searchProducts(keyword: String) async throws -> [ProductSummary] {
         return try await get(path: ApiEndpoints.searchProducts, params: ["keyword": keyword])
+    }
+
+    func searchProductsPaginated(keyword: String, offset: Int = 0, limit: Int = 20) async throws -> PaginatedResponse<ProductSummary> {
+        let params: [String: String] = [
+            "keyword": keyword,
+            "offset": String(offset),
+            "limit": String(limit)
+        ]
+        return try await get(path: ApiEndpoints.searchProductsPaginated, params: params)
     }
 
     func fetchProductDetail(cropName: String) async throws -> ProductDetail {
