@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var settings: SettingsManager
+    @ObservedObject private var network = NetworkMonitor.shared
     @State private var products: [ProductSummary] = []
     @State private var selectedCategory: CropCategory = .all
     @State private var isLoading = false
@@ -14,6 +15,11 @@ struct HomeView: View {
                 LiquidGlassBackground()
 
                 VStack(spacing: 0) {
+                    // 離線橫幅
+                    if !network.isConnected {
+                        OfflineBanner()
+                    }
+
                     // 分類選擇 — 膠囊晶片
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
@@ -28,6 +34,8 @@ struct HomeView: View {
                                         loadProducts()
                                     }
                                 )
+                                .accessibilityLabel("分類：\(cat.label)")
+                                .accessibilityAddTraits(selectedCategory == cat ? .isSelected : [])
                             }
                         }
                         .padding(.horizontal, 16)
@@ -36,15 +44,7 @@ struct HomeView: View {
 
                     // 產品列表
                     if isLoading && products.isEmpty {
-                        Spacer()
-                        ProgressView()
-                            .tint(AppColors.primary)
-                            .scaleEffect(1.2)
-                        Text("載入中…")
-                            .font(.system(size: 14, design: .rounded))
-                            .foregroundColor(AppColors.textTertiary)
-                            .padding(.top, 8)
-                        Spacer()
+                        SkeletonListView()
                     } else if let error = errorMessage, products.isEmpty {
                         Spacer()
                         VStack(spacing: 14) {

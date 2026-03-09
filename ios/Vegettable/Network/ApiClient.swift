@@ -24,6 +24,10 @@ class ApiClient {
     private let session: URLSession
     private let decoder: JSONDecoder
 
+    /// 重試設定
+    private let maxRetries = 3
+    private let baseDelay: TimeInterval = 1.0
+
     private init() {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -32,62 +36,85 @@ class ApiClient {
         decoder = JSONDecoder()
     }
 
-    // MARK: - 通用 GET
-    private func get<T: Codable>(path: String, params: [String: String]? = nil) async throws -> T {
-        var urlString = ApiEndpoints.baseURL + path
-        if let params = params, !params.isEmpty {
-            let queryItems = params.map { URLQueryItem(name: $0.key, value: $0.value) }
-            var components = URLComponents(string: urlString)!
-            components.queryItems = queryItems
-            urlString = components.url!.absoluteString
+    // MARK: - 指數退避重試
+    private func withRetry<T>(maxAttempts: Int = 3, operation: @escaping () async throws -> T) async throws -> T {
+        var lastError: Error?
+        for attempt in 0..<maxAttempts {
+            do {
+                return try await operation()
+            } catch {
+                lastError = error
+                if error is ApiError { throw error }
+                if attempt < maxAttempts - 1 {
+                    let delay = baseDelay * pow(2.0, Double(attempt))
+                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                }
+            }
         }
-
-        guard let url = URL(string: urlString) else {
-            throw ApiError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw ApiError.serverError
-        }
-
-        let apiResponse = try decoder.decode(ApiResponse<T>.self, from: data)
-
-        guard apiResponse.success, let responseData = apiResponse.data else {
-            throw ApiError.apiError(apiResponse.message ?? "資料取得失敗")
-        }
-
-        return responseData
+        throw lastError ?? ApiError.serverError
     }
 
-    // MARK: - 通用 POST
+    // MARK: - 通用 GET（含重試）
+    private func get<T: Codable>(path: String, params: [String: String]? = nil) async throws -> T {
+        try await withRetry { [self] in
+            var urlString = ApiEndpoints.baseURL + path
+            if let params = params, !params.isEmpty {
+                let queryItems = params.map { URLQueryItem(name: $0.key, value: $0.value) }
+                var components = URLComponents(string: urlString)!
+                components.queryItems = queryItems
+                urlString = components.url!.absoluteString
+            }
+
+            guard let url = URL(string: urlString) else {
+                throw ApiError.invalidURL
+            }
+
+            var request = URLRequest(url: url)
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
+
+            let (data, response) = try await session.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                throw ApiError.serverError
+            }
+
+            let apiResponse = try decoder.decode(ApiResponse<T>.self, from: data)
+
+            guard apiResponse.success, let responseData = apiResponse.data else {
+                throw ApiError.apiError(apiResponse.message ?? "資料取得失敗")
+            }
+
+            return responseData
+        }
+    }
+
+    // MARK: - 通用 POST（含重試）
     private func post<T: Codable, B: Codable>(path: String, body: B) async throws -> T {
-        let urlString = ApiEndpoints.baseURL + path
-        guard let url = URL(string: urlString) else { throw ApiError.invalidURL }
+        try await withRetry { [self] in
+            let urlString = ApiEndpoints.baseURL + path
+            guard let url = URL(string: urlString) else { throw ApiError.invalidURL }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.httpBody = try JSONEncoder().encode(body)
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.httpBody = try JSONEncoder().encode(body)
 
-        let (data, response) = try await session.data(for: request)
+            let (data, response) = try await session.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw ApiError.serverError
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                throw ApiError.serverError
+            }
+
+            let apiResponse = try decoder.decode(ApiResponse<T>.self, from: data)
+
+            guard apiResponse.success, let responseData = apiResponse.data else {
+                throw ApiError.apiError(apiResponse.message ?? "操作失敗")
+            }
+
+            return responseData
         }
-
-        let apiResponse = try decoder.decode(ApiResponse<T>.self, from: data)
-
-        guard apiResponse.success, let responseData = apiResponse.data else {
-            throw ApiError.apiError(apiResponse.message ?? "操作失敗")
-        }
-
-        return responseData
     }
 
     // MARK: - Products API
@@ -198,12 +225,14 @@ enum ApiError: LocalizedError {
     case invalidURL
     case serverError
     case apiError(String)
+    case offline
 
     var errorDescription: String? {
         switch self {
         case .invalidURL: return "無效的 URL"
         case .serverError: return "伺服器錯誤"
         case .apiError(let msg): return msg
+        case .offline: return "目前處於離線狀態"
         }
     }
 }

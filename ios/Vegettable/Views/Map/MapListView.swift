@@ -64,6 +64,7 @@ struct MapListView: View {
                                     Button("導航") {
                                         openMaps(market: market)
                                     }
+                                    .accessibilityLabel("導航至\(market.name)果菜批發市場")
                                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 16)

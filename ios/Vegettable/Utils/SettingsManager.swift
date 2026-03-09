@@ -73,8 +73,22 @@ class SettingsManager: ObservableObject {
         return try? JSONDecoder().decode([ProductSummary].self, from: data)
     }
 
+    /// 載入快取（若未過期）
+    func loadValidCachedProducts() -> [ProductSummary]? {
+        guard !isCacheStale else { return nil }
+        return loadCachedProducts()
+    }
+
     var isCacheStale: Bool {
         let cacheTime = UserDefaults.standard.object(forKey: "cacheTime") as? Date ?? .distantPast
-        return Date().timeIntervalSince(cacheTime) > 3600
+        return Date().timeIntervalSince(cacheTime) > 1800 // 30 分鐘過期
+    }
+
+    var cacheAge: String {
+        let cacheTime = UserDefaults.standard.object(forKey: "cacheTime") as? Date ?? .distantPast
+        let minutes = Int(Date().timeIntervalSince(cacheTime) / 60)
+        if minutes < 1 { return "剛剛更新" }
+        if minutes < 60 { return "\(minutes) 分鐘前更新" }
+        return "\(minutes / 60) 小時前更新"
     }
 }

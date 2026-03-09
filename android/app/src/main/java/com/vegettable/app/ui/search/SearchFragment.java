@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.vegettable.app.R;
@@ -36,6 +37,7 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
     private RecyclerView rvResults;
     private TextView tvResultCount;
     private TextView tvSearchError;
+    private SwipeRefreshLayout swipeRefresh;
     private ProductAdapter adapter;
     private PrefsManager prefs;
     private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -58,11 +60,22 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
         rvResults = view.findViewById(R.id.rv_results);
         tvResultCount = view.findViewById(R.id.tv_result_count);
         tvSearchError = view.findViewById(R.id.tv_search_error);
+        swipeRefresh = view.findViewById(R.id.swipe_refresh);
 
         rvResults.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new ProductAdapter(this, prefs.getFavorites());
         adapter.setPriceUnit(prefs.getPriceUnit());
         rvResults.setAdapter(adapter);
+
+        swipeRefresh.setColorSchemeResources(R.color.primary);
+        swipeRefresh.setOnRefreshListener(() -> {
+            String kw = etSearch.getText() != null ? etSearch.getText().toString().trim() : "";
+            if (!kw.isEmpty()) {
+                performSearch(kw);
+            } else {
+                swipeRefresh.setRefreshing(false);
+            }
+        });
 
         // 搜尋防抖
         etSearch.addTextChangedListener(new TextWatcher() {
@@ -96,6 +109,7 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
                     public void onResponse(@NonNull Call<ApiResponse<List<ProductSummary>>> call,
                                            @NonNull Response<ApiResponse<List<ProductSummary>>> response) {
                         if (!isAdded()) return;
+                        swipeRefresh.setRefreshing(false);
                         if (response.isSuccessful() && response.body() != null
                                 && response.body().isSuccess() && response.body().getData() != null) {
                             List<ProductSummary> results = response.body().getData();
@@ -110,6 +124,7 @@ public class SearchFragment extends Fragment implements ProductAdapter.OnItemCli
                     public void onFailure(@NonNull Call<ApiResponse<List<ProductSummary>>> call,
                                           @NonNull Throwable t) {
                         if (!isAdded()) return;
+                        swipeRefresh.setRefreshing(false);
                         if (tvSearchError != null) {
                             tvSearchError.setText("搜尋失敗: " + t.getMessage());
                             tvSearchError.setVisibility(View.VISIBLE);

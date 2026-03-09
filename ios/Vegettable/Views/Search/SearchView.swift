@@ -19,9 +19,11 @@ struct SearchView: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(AppColors.textTertiary)
                             .font(.system(size: 16))
+                            .accessibilityHidden(true)
                         TextField("搜尋蔬果名稱…", text: $keyword)
                             .font(.system(size: 15, design: .rounded))
                             .textFieldStyle(.plain)
+                            .accessibilityLabel("搜尋蔬果名稱")
                             .onChange(of: keyword) { _ in debounceSearch() }
 
                         if isSearching {

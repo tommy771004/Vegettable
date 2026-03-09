@@ -116,8 +116,11 @@ struct ProductRow: View {
                         .font(.system(size: 16))
                         .foregroundColor(isFavorite ? .pink : AppColors.textTertiary.opacity(0.6))
                 }
+                .accessibilityLabel(isFavorite ? "取消收藏" : "加入收藏")
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(product.cropName)，價格 \(PriceUtils.formatPrice(displayPrice)) 元，\(PriceUtils.priceLevelLabel(product.priceLevel))")
         .padding(18)
         .background(
             ZStack {
