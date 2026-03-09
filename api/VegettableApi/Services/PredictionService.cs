@@ -41,8 +41,10 @@ public class PredictionService : IPredictionService
         var xs = Enumerable.Range(0, n).Select(i => (decimal)i).ToList();
         var xMean = xs.Average();
         var yMean = dailyPrices.Average();
-        var slope = xs.Zip(dailyPrices, (x, y) => (x - xMean) * (y - yMean)).Sum()
-                  / xs.Select(x => (x - xMean) * (x - xMean)).Sum();
+        var denominator = xs.Select(x => (x - xMean) * (x - xMean)).Sum();
+        var slope = denominator > 0
+            ? xs.Zip(dailyPrices, (x, y) => (x - xMean) * (y - yMean)).Sum() / denominator
+            : 0m;
 
         var predicted = yMean + slope * (n + 7); // 預測 7 天後
 
@@ -90,15 +92,22 @@ public class PredictionService : IPredictionService
 
     public List<SeasonalInfoDto> GetSeasonalInfo(string? category = null)
     {
-        var all = SeasonalData;
-        if (!string.IsNullOrWhiteSpace(category))
-            all = all.Where(s => s.Category == category).ToList();
-
         var currentMonth = DateTime.Today.Month;
-        foreach (var item in all)
-            item.IsInSeason = item.PeakMonths.Contains(currentMonth);
 
-        return all.OrderByDescending(s => s.IsInSeason).ThenBy(s => s.CropName).ToList();
+        // 建立新的副本而非修改靜態資料，避免並行請求的競態條件
+        return SeasonalData
+            .Where(s => string.IsNullOrWhiteSpace(category) || s.Category == category)
+            .Select(s => new SeasonalInfoDto
+            {
+                CropName = s.CropName,
+                Category = s.Category,
+                PeakMonths = s.PeakMonths,
+                SeasonNote = s.SeasonNote,
+                IsInSeason = s.PeakMonths.Contains(currentMonth),
+            })
+            .OrderByDescending(s => s.IsInSeason)
+            .ThenBy(s => s.CropName)
+            .ToList();
     }
 
     public List<RecipeDto> GetRecipesForCrop(string cropName)

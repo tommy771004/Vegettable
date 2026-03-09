@@ -58,7 +58,7 @@ public class AlertsController : ControllerBase
 
         var result = await _alertService.DeleteAlertAsync(id, deviceToken);
         return result
-            ? Ok(ApiResponse<object>.Ok(null!, "警示已刪除"))
+            ? Ok(new { success = true, message = "警示已刪除", timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() })
             : NotFound(ApiResponse<object>.Fail("找不到該警示"));
     }
 
@@ -73,7 +73,7 @@ public class AlertsController : ControllerBase
 
         var result = await _alertService.ToggleAlertAsync(id, deviceToken);
         return result
-            ? Ok(ApiResponse<object>.Ok(null!, "警示狀態已切換"))
+            ? Ok(new { success = true, message = "警示狀態已切換", timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() })
             : NotFound(ApiResponse<object>.Fail("找不到該警示"));
     }
 }
