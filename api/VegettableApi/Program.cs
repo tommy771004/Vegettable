@@ -8,6 +8,10 @@ using VegettableApi.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- 日誌設定 — 生產環境縮減輸出 ---
+builder.Logging.SetMinimumLevel(
+    builder.Environment.IsDevelopment() ? LogLevel.Debug : LogLevel.Warning);
+
 // --- Services ---
 
 builder.Services.AddControllers();

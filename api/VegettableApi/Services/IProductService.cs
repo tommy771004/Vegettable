@@ -7,8 +7,11 @@ namespace VegettableApi.Services;
 /// </summary>
 public interface IProductService
 {
-    /// <summary>取得所有近期產品摘要列表</summary>
+    /// <summary>取得所有近期產品摘要列表 (支援分頁)</summary>
     Task<List<ProductSummaryDto>> GetRecentProductsAsync(string? category = null);
+
+    /// <summary>取得近期產品摘要列表 (含分頁元數據)</summary>
+    Task<PaginatedResponse<ProductSummaryDto>> GetRecentProductsPaginatedAsync(string? category = null, int offset = 0, int limit = 20);
 
     /// <summary>取得特定產品的詳情（含七日走勢、三年月均價）</summary>
     Task<ProductDetailDto> GetProductDetailAsync(string cropName);
@@ -18,4 +21,7 @@ public interface IProductService
 
     /// <summary>搜尋產品（支援別名搜尋）</summary>
     Task<List<ProductSummaryDto>> SearchProductsAsync(string keyword);
+
+    /// <summary>搜尋產品 (支援分頁)</summary>
+    Task<PaginatedResponse<ProductSummaryDto>> SearchProductsPaginatedAsync(string keyword, int offset = 0, int limit = 20);
 }

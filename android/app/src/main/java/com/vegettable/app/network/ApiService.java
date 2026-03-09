@@ -18,9 +18,23 @@ public interface ApiService {
             @Query("category") String category
     );
 
+    @GET("/api/products/paginated")
+    Call<ApiResponse<PaginatedResponse<ProductSummary>>> getProductsPaginated(
+            @Query("category") String category,
+            @Query("offset") int offset,
+            @Query("limit") int limit
+    );
+
     @GET("/api/products/search")
     Call<ApiResponse<List<ProductSummary>>> searchProducts(
             @Query("keyword") String keyword
+    );
+
+    @GET("/api/products/search/paginated")
+    Call<ApiResponse<PaginatedResponse<ProductSummary>>> searchProductsPaginated(
+            @Query("keyword") String keyword,
+            @Query("offset") int offset,
+            @Query("limit") int limit
     );
 
     @GET("/api/products/{cropName}")

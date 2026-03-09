@@ -8,6 +8,16 @@ struct ApiResponse<T: Codable>: Codable {
     let timestamp: Int64
 }
 
+// MARK: - 分頁回應
+struct PaginatedResponse<T: Codable>: Codable {
+    let items: [T]
+    let offset: Int
+    let limit: Int
+    let total: Int
+    let hasMore: Bool
+    let totalPages: Int
+}
+
 // MARK: - 產品摘要
 struct ProductSummary: Codable, Identifiable {
     let cropCode: String
