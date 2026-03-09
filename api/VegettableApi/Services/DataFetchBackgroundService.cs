@@ -72,18 +72,14 @@ public class DataFetchBackgroundService : BackgroundService
             _logger.LogInformation("Removed {Count} stale cache entries", oldEntries.Count);
         }
 
-        // 寫入新資料 (避免重複)
-        var newCount = 0;
-        foreach (var item in data)
-        {
-            var exists = await db.CachedDailyPrices.AnyAsync(c =>
-                c.CropName == item.CropName &&
-                c.MarketName == item.MarketName &&
-                c.TransDate == item.TransDate, ct);
+        // 批次查詢已存在的記錄鍵值，避免 N+1 問題
+        var existingKeys = await db.CachedDailyPrices
+            .Select(c => c.CropName + "|" + c.MarketName + "|" + c.TransDate)
+            .ToHashSetAsync(ct);
 
-            if (exists) continue;
-
-            db.CachedDailyPrices.Add(new CachedDailyPrice
+        var newEntries = data
+            .Where(item => !existingKeys.Contains(item.CropName + "|" + item.MarketName + "|" + item.TransDate))
+            .Select(item => new CachedDailyPrice
             {
                 CropCode = item.CropCode,
                 CropName = item.CropName,
@@ -95,14 +91,14 @@ public class DataFetchBackgroundService : BackgroundService
                 MiddlePrice = item.MiddlePrice,
                 LowerPrice = item.LowerPrice,
                 Volume = item.Volume,
-            });
-            newCount++;
-        }
+            })
+            .ToList();
 
-        if (newCount > 0)
+        if (newEntries.Count > 0)
         {
+            await db.CachedDailyPrices.AddRangeAsync(newEntries, ct);
             await db.SaveChangesAsync(ct);
-            _logger.LogInformation("Cached {Count} new daily price records", newCount);
+            _logger.LogInformation("Cached {Count} new daily price records", newEntries.Count);
         }
     }
 

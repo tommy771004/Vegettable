@@ -1,4 +1,6 @@
+using System.IO.Compression;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using VegettableApi.Data;
 using VegettableApi.Services;
@@ -37,6 +39,20 @@ builder.Services.AddHttpClient<IMoaApiService, MoaApiService>(client =>
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
+
+// 回應壓縮 (Gzip/Brotli — 降低傳輸量)
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/json" });
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.Fastest);
 
 // --- Application services ---
 builder.Services.AddScoped<IProductService, ProductService>();
@@ -130,7 +146,10 @@ using (var scope = app.Services.CreateScope())
 
 // --- Middleware Pipeline ---
 
-// 安全性標頭 (最先執行)
+// 回應壓縮 (最先執行以壓縮所有回應)
+app.UseResponseCompression();
+
+// 安全性標頭
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
 // 全域例外處理

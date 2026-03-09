@@ -16,14 +16,7 @@ struct DetailView: View {
             LiquidGlassBackground()
 
             if isLoading {
-                VStack(spacing: 12) {
-                    ProgressView()
-                        .tint(AppColors.primary)
-                        .scaleEffect(1.2)
-                    Text("載入中…")
-                        .font(.system(size: 14, design: .rounded))
-                        .foregroundColor(AppColors.textTertiary)
-                }
+                SkeletonListView(count: 4)
             } else if let detail = detail {
                 ScrollView {
                     VStack(spacing: 14) {
@@ -93,13 +86,19 @@ struct DetailView: View {
                     Image(systemName: settings.isFavorite(cropCode) ? "heart.fill" : "heart")
                         .foregroundColor(settings.isFavorite(cropCode) ? .pink : .gray)
                 }
+                .accessibilityLabel(settings.isFavorite(cropCode) ? "取消收藏" : "加入收藏")
 
                 ShareLink(item: "\(cropName) — 菜價查詢 App") {
                     Image(systemName: "square.and.arrow.up")
                 }
+                .accessibilityLabel("分享")
             }
         }
         .onAppear { loadDetail() }
+    }
+
+    private func loadData() {
+        loadDetail()
     }
 
     /// 日期格式化：「115.03.02」→「03/02」、「2023/01」保留

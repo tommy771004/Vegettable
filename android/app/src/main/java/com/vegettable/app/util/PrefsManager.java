@@ -112,7 +112,23 @@ public class PrefsManager {
 
     public boolean isCacheStale() {
         long cacheTime = prefs.getLong(KEY_CACHE_TIME, 0);
-        long oneHour = 60 * 60 * 1000L;
-        return (System.currentTimeMillis() - cacheTime) > oneHour;
+        long thirtyMinutes = 30 * 60 * 1000L;
+        return (System.currentTimeMillis() - cacheTime) > thirtyMinutes;
+    }
+
+    /** 載入有效快取（未過期） */
+    public String getValidCachedProducts() {
+        if (isCacheStale()) return null;
+        return getCachedProducts();
+    }
+
+    /** 快取時間描述 */
+    public String getCacheAge() {
+        long cacheTime = prefs.getLong(KEY_CACHE_TIME, 0);
+        if (cacheTime == 0) return "";
+        long minutes = (System.currentTimeMillis() - cacheTime) / 60000;
+        if (minutes < 1) return "剛剛更新";
+        if (minutes < 60) return minutes + " 分鐘前更新";
+        return (minutes / 60) + " 小時前更新";
     }
 }

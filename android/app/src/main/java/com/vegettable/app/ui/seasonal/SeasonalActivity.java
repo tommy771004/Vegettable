@@ -14,6 +14,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -36,6 +37,7 @@ public class SeasonalActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private LinearLayout layoutError;
     private TextView tvError;
+    private SwipeRefreshLayout swipeRefresh;
     private SeasonalAdapter adapter;
     private String selectedCategory = null;
 
@@ -50,10 +52,14 @@ public class SeasonalActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progress_bar);
         layoutError = findViewById(R.id.layout_error);
         tvError = findViewById(R.id.tv_error);
+        swipeRefresh = findViewById(R.id.swipe_refresh);
 
         rvSeasonal.setLayoutManager(new LinearLayoutManager(this));
         adapter = new SeasonalAdapter();
         rvSeasonal.setAdapter(adapter);
+
+        swipeRefresh.setColorSchemeResources(android.R.color.holo_green_dark);
+        swipeRefresh.setOnRefreshListener(this::loadSeasonal);
 
         findViewById(R.id.btn_retry).setOnClickListener(v -> loadSeasonal());
 
@@ -91,6 +97,7 @@ public class SeasonalActivity extends AppCompatActivity {
                     public void onResponse(@NonNull Call<ApiResponse<List<SeasonalInfo>>> call,
                                            @NonNull Response<ApiResponse<List<SeasonalInfo>>> response) {
                         progressBar.setVisibility(View.GONE);
+                        swipeRefresh.setRefreshing(false);
                         if (response.isSuccessful() && response.body() != null
                                 && response.body().isSuccess() && response.body().getData() != null) {
                             adapter.setItems(response.body().getData());
@@ -104,6 +111,7 @@ public class SeasonalActivity extends AppCompatActivity {
                     public void onFailure(@NonNull Call<ApiResponse<List<SeasonalInfo>>> call,
                                           @NonNull Throwable t) {
                         progressBar.setVisibility(View.GONE);
+                        swipeRefresh.setRefreshing(false);
                         showError("網路錯誤: " + t.getMessage());
                     }
                 });
@@ -136,6 +144,11 @@ public class SeasonalActivity extends AppCompatActivity {
             SeasonalInfo info = items.get(pos);
             h.tvName.setText(info.getCropName());
             h.tvNote.setText(info.getSeasonNote());
+
+            // TalkBack 無障礙
+            String seasonStatus = info.isInSeason() ? "當季" : "非當季";
+            h.itemView.setContentDescription(
+                    info.getCropName() + "，" + seasonStatus + "，" + info.getSeasonNote());
 
             // 當季 badge
             if (info.isInSeason()) {

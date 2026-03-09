@@ -16,14 +16,7 @@ struct FavoritesView: View {
                 LiquidGlassBackground()
 
                 if isLoading {
-                    VStack(spacing: 12) {
-                        ProgressView()
-                            .tint(AppColors.primary)
-                            .scaleEffect(1.2)
-                        Text("載入中…")
-                            .font(.system(size: 14, design: .rounded))
-                            .foregroundColor(AppColors.textTertiary)
-                    }
+                    SkeletonListView(count: 3)
                 } else if let error = errorMessage {
                     Spacer()
                     VStack(spacing: 14) {

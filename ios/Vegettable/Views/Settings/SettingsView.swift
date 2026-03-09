@@ -106,7 +106,7 @@ struct SettingsView: View {
                                     .font(.system(size: 12, design: .rounded))
                                     .foregroundColor(AppColors.textTertiary)
 
-                                Text("v2.0 — Liquid Glass")
+                                Text("v2.0 — 液態玻璃設計")
                                     .font(.system(size: 12, weight: .medium, design: .rounded))
                                     .foregroundColor(AppColors.textTertiary)
                             }
@@ -152,5 +152,8 @@ struct SettingsRow: View {
                 .foregroundColor(AppColors.textTertiary.opacity(0.6))
         }
         .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(.isButton)
     }
 }

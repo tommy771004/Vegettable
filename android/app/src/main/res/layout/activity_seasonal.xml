@@ -52,52 +52,58 @@
             app:selectionRequired="true" />
     </HorizontalScrollView>
 
-    <FrameLayout
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_seasonal"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:paddingBottom="24dp"
-            android:clipToPadding="false" />
+            android:layout_height="match_parent">
 
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone" />
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_seasonal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="24dp"
+                android:clipToPadding="false" />
 
-        <LinearLayout
-            android:id="@+id/layout_error"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="24dp"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/tv_error"
+            <ProgressBar
+                android:id="@+id/progress_bar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:textColor="@color/text_secondary"
-                android:gravity="center" />
+                android:layout_gravity="center"
+                android:visibility="gone" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_retry"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/layout_error"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="重試"
-                android:layout_marginTop="12dp"
-                app:cornerRadius="20dp" />
-        </LinearLayout>
-    </FrameLayout>
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="24dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tv_error"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:gravity="center" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_retry"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="重試"
+                    android:layout_marginTop="12dp"
+                    app:cornerRadius="20dp" />
+            </LinearLayout>
+        </FrameLayout>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 </LinearLayout>

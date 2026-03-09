@@ -127,7 +127,13 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
             btnFav.setImageResource(isFav
                     ? android.R.drawable.btn_star_big_on
                     : android.R.drawable.btn_star_big_off);
+            btnFav.setContentDescription(isFav ? "取消收藏" : "加入收藏");
             btnFav.setOnClickListener(v -> listener.onFavoriteClick(p));
+
+            // TalkBack 無障礙
+            itemView.setContentDescription(
+                    p.getCropName() + "，價格 " + PriceUtils.formatPrice(displayPrice)
+                    + " 元，" + levelLabel);
 
             // 點擊
             itemView.setOnClickListener(v -> listener.onItemClick(p));

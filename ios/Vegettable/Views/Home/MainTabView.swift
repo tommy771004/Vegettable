@@ -93,5 +93,9 @@ struct TabBarItem: View {
             }
         )
         .scaleEffect(isSelected ? 1.05 : 1.0)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityAddTraits(.isButton)
     }
 }

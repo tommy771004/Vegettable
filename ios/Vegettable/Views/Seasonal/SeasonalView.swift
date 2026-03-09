@@ -32,10 +32,7 @@ struct SeasonalView: View {
                 .padding(.vertical, 10)
 
                 if isLoading {
-                    Spacer()
-                    ProgressView()
-                        .tint(AppColors.primary)
-                    Spacer()
+                    SkeletonListView(count: 5)
                 } else if let error = errorMessage {
                     Spacer()
                     VStack(spacing: 14) {
@@ -170,5 +167,7 @@ struct SeasonalRow: View {
             }
             .padding(18)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(info.cropName)，\(info.isInSeason ? "當季" : "非當季")，\(info.seasonNote)")
     }
 }

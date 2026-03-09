@@ -17,6 +17,7 @@ struct CompareView: View {
                         .foregroundColor(AppColors.textTertiary)
                     TextField("輸入作物名稱進行比價", text: $cropName)
                         .font(.system(size: 15, design: .rounded))
+                        .accessibilityLabel("輸入作物名稱進行比價")
                         .onSubmit { compare() }
                 }
                 .padding(14)
@@ -35,10 +36,7 @@ struct CompareView: View {
                 .padding(.top, 4)
 
                 if isLoading {
-                    Spacer()
-                    ProgressView()
-                        .tint(AppColors.primary)
-                    Spacer()
+                    SkeletonListView(count: 4)
                 } else if let error = errorMessage {
                     Spacer()
                     VStack(spacing: 14) {
