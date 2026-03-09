@@ -25,11 +25,11 @@ jobs:
 
       - name: 還原相依套件
         run: dotnet restore
-        working-directory: ./YourApiFolder # [請修改] 換成您的 API 資料夾路徑
+        working-directory: ./api # [請修改] 換成您的 API 資料夾路徑
 
       - name: 執行 C# 測試
         run: dotnet test --no-restore --verbosity normal
-        working-directory: ./YourApiFolder # [請修改] 換成您的 API 資料夾路徑
+        working-directory: ./api # [請修改] 換成您的 API 資料夾路徑
 
   # ----------------------------------------
   # 2. 測試 Android App
@@ -49,11 +49,11 @@ jobs:
 
       - name: 賦予 Gradle 執行權限
         run: chmod +x ./gradlew
-        working-directory: ./YourAndroidFolder # [請修改] 換成您的 Android 資料夾路徑
+        working-directory: ./android # [請修改] 換成您的 Android 資料夾路徑
 
       - name: 執行 Android 單元測試
         run: ./gradlew testDebugUnitTest
-        working-directory: ./YourAndroidFolder # [請修改] 換成您的 Android 資料夾路徑
+        working-directory: ./android # [請修改] 換成您的 Android 資料夾路徑
 
   # ----------------------------------------
   # 3. 測試 iOS App
@@ -77,4 +77,4 @@ jobs:
             -project YourApp.xcodeproj \
             -scheme YourAppScheme \
             -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
-        working-directory: ./YourIosFolder # [請修改] 換成您的 iOS 資料夾路徑
+        working-directory: ./ios # [請修改] 換成您的 iOS 資料夾路徑
