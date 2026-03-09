@@ -1,0 +1,80 @@
+name: CI Automated Tests
+
+# 設定觸發條件：當推送到 main 分支，或對 main 分支發起 Pull Request 時觸發
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # ----------------------------------------
+  # 1. 測試 C# API
+  # ----------------------------------------
+  test-csharp-api:
+    name: Test C# API
+    runs-on: ubuntu-latest # 使用 Linux 執行環境
+    steps:
+      - name: 取得程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 .NET 環境
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x' # 請改成您專案使用的 .NET 版本
+
+      - name: 還原相依套件
+        run: dotnet restore
+        working-directory: ./YourApiFolder # [請修改] 換成您的 API 資料夾路徑
+
+      - name: 執行 C# 測試
+        run: dotnet test --no-restore --verbosity normal
+        working-directory: ./YourApiFolder # [請修改] 換成您的 API 資料夾路徑
+
+  # ----------------------------------------
+  # 2. 測試 Android App
+  # ----------------------------------------
+  test-android:
+    name: Test Android App
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取得程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17' # 請確認您 Android 專案對應的 JDK 版本
+
+      - name: 賦予 Gradle 執行權限
+        run: chmod +x ./gradlew
+        working-directory: ./YourAndroidFolder # [請修改] 換成您的 Android 資料夾路徑
+
+      - name: 執行 Android 單元測試
+        run: ./gradlew testDebugUnitTest
+        working-directory: ./YourAndroidFolder # [請修改] 換成您的 Android 資料夾路徑
+
+  # ----------------------------------------
+  # 3. 測試 iOS App
+  # ----------------------------------------
+  test-ios:
+    name: Test iOS App
+    runs-on: macos-latest # iOS 必須使用 macOS 執行環境
+    steps:
+      - name: 取得程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Xcode 版本 (可選)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: 執行 iOS 測試
+        # 請根據您的專案類型(project 或 workspace)、Scheme 名稱進行修改
+        run: |
+          xcodebuild test \
+            -project YourApp.xcodeproj \
+            -scheme YourAppScheme \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
+        working-directory: ./YourIosFolder # [請修改] 換成您的 iOS 資料夾路徑
