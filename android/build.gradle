@@ -9,12 +9,7 @@ buildscript {
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+// 👇 原本在這裡的 allprojects { ... } 整個區塊已經被刪除了 👇
 
 task clean(type: Delete) {
     delete rootProject.buildDir
