@@ -8,7 +8,13 @@ buildscript {
         classpath 'com.android.tools.build:gradle:8.2.0'
     }
 }
-
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://jitpack.io" } // <-- Add this line right here
+    }
+}
 // 👇 原本在這裡的 allprojects { ... } 整個區塊已經被刪除了 👇
 
 task clean(type: Delete) {
