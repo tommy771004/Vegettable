@@ -124,6 +124,7 @@ public class DetailActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(@NonNull Call<ApiResponse<ProductDetail>> call,
                                            @NonNull Response<ApiResponse<ProductDetail>> response) {
+                        if (isFinishing() || isDestroyed()) return;
                         progressDetail.setVisibility(View.GONE);
 
                         if (response.isSuccessful() && response.body() != null
@@ -135,6 +136,7 @@ public class DetailActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<ProductDetail>> call,
                                           @NonNull Throwable t) {
+                        if (isFinishing() || isDestroyed()) return;
                         progressDetail.setVisibility(View.GONE);
                     }
                 });
@@ -316,6 +318,7 @@ public class DetailActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(@NonNull Call<ApiResponse<PricePrediction>> call,
                                            @NonNull Response<ApiResponse<PricePrediction>> response) {
+                        if (isFinishing() || isDestroyed()) return;
                         if (response.isSuccessful() && response.body() != null
                                 && response.body().isSuccess() && response.body().getData() != null) {
                             PricePrediction pred = response.body().getData();
@@ -333,7 +336,7 @@ public class DetailActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<PricePrediction>> call,
-                                          @NonNull Throwable t) { }
+                                          @NonNull Throwable t) { /* 靜默失敗，預測為次要功能 */ }
                 });
     }
 
@@ -345,6 +348,7 @@ public class DetailActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(@NonNull Call<ApiResponse<List<Recipe>>> call,
                                            @NonNull Response<ApiResponse<List<Recipe>>> response) {
+                        if (isFinishing() || isDestroyed()) return;
                         if (response.isSuccessful() && response.body() != null
                                 && response.body().isSuccess() && response.body().getData() != null) {
                             List<Recipe> recipes = response.body().getData();
@@ -357,7 +361,7 @@ public class DetailActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(@NonNull Call<ApiResponse<List<Recipe>>> call,
-                                          @NonNull Throwable t) { }
+                                          @NonNull Throwable t) { /* 靜默失敗，食譜為次要功能 */ }
                 });
     }
 
