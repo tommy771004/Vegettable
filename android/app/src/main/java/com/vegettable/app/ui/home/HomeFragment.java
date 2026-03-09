@@ -28,6 +28,8 @@ import com.vegettable.app.ui.adapter.ProductAdapter;
 import com.vegettable.app.ui.detail.DetailActivity;
 import com.vegettable.app.util.PrefsManager;
 
+import com.vegettable.app.model.PaginatedResponse;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +49,12 @@ public class HomeFragment extends Fragment implements ProductAdapter.OnItemClick
     private ProductAdapter adapter;
     private PrefsManager prefs;
     private String selectedCategory = null;
+
+    // 分頁狀態
+    private static final int PAGE_SIZE = 20;
+    private int currentOffset = 0;
+    private boolean hasMore = false;
+    private boolean isLoadingMore = false;
 
     private static final String[][] CATEGORIES = {
             {"all", "全部"}, {"vegetable", "蔬菜"}, {"fruit", "水果"},
@@ -74,11 +82,27 @@ public class HomeFragment extends Fragment implements ProductAdapter.OnItemClick
         chipGroupCategory = view.findViewById(R.id.chip_group_category);
 
         // 設定 RecyclerView
-        rvProducts.setLayoutManager(new LinearLayoutManager(requireContext()));
+        LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
+        rvProducts.setLayoutManager(layoutManager);
         adapter = new ProductAdapter(this, prefs.getFavorites());
         adapter.setPriceUnit(prefs.getPriceUnit());
         adapter.setShowRetail(prefs.isShowRetailPrice());
         rvProducts.setAdapter(adapter);
+
+        // Infinite scroll — 接近底部時自動載入下一頁
+        rvProducts.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                if (dy <= 0) return; // 只在向下滾動時觸發
+                int visibleCount = layoutManager.getChildCount();
+                int totalCount = layoutManager.getItemCount();
+                int firstVisible = layoutManager.findFirstVisibleItemPosition();
+
+                if (hasMore && !isLoadingMore && (visibleCount + firstVisible + 5) >= totalCount) {
+                    loadMoreProducts();
+                }
+            }
+        });
 
         // 分類 Chips
         setupCategoryChips();
@@ -117,20 +141,24 @@ public class HomeFragment extends Fragment implements ProductAdapter.OnItemClick
     private void loadProducts() {
         progressBar.setVisibility(View.VISIBLE);
         layoutError.setVisibility(View.GONE);
+        currentOffset = 0;
 
-        ApiClient.getInstance().getApi().getProducts(selectedCategory)
-                .enqueue(new Callback<ApiResponse<List<ProductSummary>>>() {
+        ApiClient.getInstance().getApi().getProductsPaginated(selectedCategory, 0, PAGE_SIZE)
+                .enqueue(new Callback<ApiResponse<PaginatedResponse<ProductSummary>>>() {
                     @Override
-                    public void onResponse(@NonNull Call<ApiResponse<List<ProductSummary>>> call,
-                                           @NonNull Response<ApiResponse<List<ProductSummary>>> response) {
+                    public void onResponse(@NonNull Call<ApiResponse<PaginatedResponse<ProductSummary>>> call,
+                                           @NonNull Response<ApiResponse<PaginatedResponse<ProductSummary>>> response) {
                         if (!isAdded()) return;
                         swipeRefresh.setRefreshing(false);
                         progressBar.setVisibility(View.GONE);
 
                         if (response.isSuccessful() && response.body() != null
                                 && response.body().isSuccess() && response.body().getData() != null) {
-                            List<ProductSummary> products = response.body().getData();
+                            PaginatedResponse<ProductSummary> page = response.body().getData();
+                            List<ProductSummary> products = page.getItems();
                             adapter.setItems(products);
+                            hasMore = page.isHasMore();
+                            currentOffset = products.size();
                             rvProducts.setVisibility(View.VISIBLE);
 
                             // 快取
@@ -142,13 +170,43 @@ public class HomeFragment extends Fragment implements ProductAdapter.OnItemClick
                     }
 
                     @Override
-                    public void onFailure(@NonNull Call<ApiResponse<List<ProductSummary>>> call,
+                    public void onFailure(@NonNull Call<ApiResponse<PaginatedResponse<ProductSummary>>> call,
                                           @NonNull Throwable t) {
                         if (!isAdded()) return;
                         swipeRefresh.setRefreshing(false);
                         progressBar.setVisibility(View.GONE);
                         showError("網路錯誤: " + t.getMessage());
                         loadCachedProducts();
+                    }
+                });
+    }
+
+    private void loadMoreProducts() {
+        if (!hasMore || isLoadingMore) return;
+        isLoadingMore = true;
+
+        ApiClient.getInstance().getApi().getProductsPaginated(selectedCategory, currentOffset, PAGE_SIZE)
+                .enqueue(new Callback<ApiResponse<PaginatedResponse<ProductSummary>>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ApiResponse<PaginatedResponse<ProductSummary>>> call,
+                                           @NonNull Response<ApiResponse<PaginatedResponse<ProductSummary>>> response) {
+                        isLoadingMore = false;
+                        if (!isAdded()) return;
+
+                        if (response.isSuccessful() && response.body() != null
+                                && response.body().isSuccess() && response.body().getData() != null) {
+                            PaginatedResponse<ProductSummary> page = response.body().getData();
+                            List<ProductSummary> newItems = page.getItems();
+                            adapter.addItems(newItems);
+                            hasMore = page.isHasMore();
+                            currentOffset += newItems.size();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ApiResponse<PaginatedResponse<ProductSummary>>> call,
+                                          @NonNull Throwable t) {
+                        isLoadingMore = false;
                     }
                 });
     }

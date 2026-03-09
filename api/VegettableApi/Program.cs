@@ -37,7 +37,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// --- Database (SQLite) ---
+// --- Database (SQLite with WAL mode for better concurrency) ---
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=vegettable.db"));
 
@@ -161,11 +161,15 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// --- 自動建立/遷移資料庫 ---
+// --- 自動建立/遷移資料庫 + 啟用 WAL 模式 ---
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
+
+    // WAL 模式 — 提升讀寫併發性
+    await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
+    await db.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL;");
 }
 
 // --- Middleware Pipeline ---

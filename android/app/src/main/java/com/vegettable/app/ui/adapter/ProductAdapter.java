@@ -60,6 +60,12 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
         result.dispatchUpdatesTo(this);
     }
 
+    public void addItems(List<ProductSummary> newItems) {
+        int start = items.size();
+        items.addAll(newItems);
+        notifyItemRangeInserted(start, newItems.size());
+    }
+
     public void setPriceUnit(String unit) {
         if (!this.priceUnit.equals(unit)) {
             this.priceUnit = unit;

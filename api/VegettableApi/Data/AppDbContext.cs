@@ -25,6 +25,8 @@ public class AppDbContext : DbContext
             e.HasIndex(c => new { c.CropName, c.TransDate });
             e.HasIndex(c => new { c.MarketName, c.TransDate });
             e.HasIndex(c => c.FetchedAt);
+            // 唯一約束 — 防止高併發下寫入重複資料
+            e.HasIndex(c => new { c.CropName, c.MarketName, c.TransDate }).IsUnique();
         });
     }
 }

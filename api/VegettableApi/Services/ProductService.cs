@@ -14,6 +14,9 @@ public class ProductService : IProductService
     private readonly ILogger<ProductService> _logger;
     private readonly IMemoryCache _cache;
 
+    /// <summary>快取過期時間 (5 分鐘)</summary>
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+
     public ProductService(IMoaApiService moaApi, ILogger<ProductService> logger, IMemoryCache cache)
     {
         _moaApi = moaApi;
@@ -23,19 +26,28 @@ public class ProductService : IProductService
 
     public async Task<List<ProductSummaryDto>> GetRecentProductsAsync(string? category = null)
     {
-        var endDate = DateTime.Today;
-        var startDate = endDate.AddDays(-10); // 多抓幾天確保有足夠交易日
+        // 快取 key — 不含 category 篩選（先取全部再篩選）
+        const string cacheKey = "RecentProducts_All";
 
-        // 並行取得近期資料與歷史同月資料
-        var recentTask = _moaApi.FetchFarmTransDataAsync(startDate, endDate);
-        var historicalTask = FetchHistoricalAverageAsync();
+        var allSummaries = await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            entry.Size = 1;
 
-        await Task.WhenAll(recentTask, historicalTask);
+            var endDate = DateTime.Today;
+            var startDate = endDate.AddDays(-10);
 
-        var recentData = await recentTask;
-        var historicalAvg = await historicalTask;
+            var recentTask = _moaApi.FetchFarmTransDataAsync(startDate, endDate);
+            var historicalTask = FetchHistoricalAverageAsync();
+            await Task.WhenAll(recentTask, historicalTask);
 
-        var summaries = AggregateToSummaries(recentData, historicalAvg);
+            var recentData = await recentTask;
+            var historicalAvg = await historicalTask;
+
+            return AggregateToSummaries(recentData, historicalAvg);
+        });
+
+        var summaries = allSummaries ?? new List<ProductSummaryDto>();
 
         // 依類別篩選
         if (!string.IsNullOrWhiteSpace(category))

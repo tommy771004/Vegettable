@@ -10,21 +10,13 @@ enum ApiEndpoints {
     #endif
 
 
-    static let products = "/api/products"
-    static let productsPaginated = "/api/products/paginated"
-    static let searchProducts = "/api/products/search"
-    static let searchProductsPaginated = "/api/products/search/paginated"
-    static let markets = "/api/markets"
-    static let marketCompare = "/api/markets/compare"
-    static let alerts = "/api/alerts"
-    static let prediction = "/api/prediction"
-    static let seasonal = "/api/prediction/seasonal"
-
     // API 版本（配合後端 API Versioning）
     private static let v1 = "/api"  // 目前後端 AssumeDefaultVersionWhenUnspecified = true，路徑不變
 
     static let products = "\(v1)/products"
+    static let productsPaginated = "\(v1)/products/paginated"
     static let searchProducts = "\(v1)/products/search"
+    static let searchProductsPaginated = "\(v1)/products/search/paginated"
     static let markets = "\(v1)/markets"
     static let marketCompare = "\(v1)/markets/compare"
     static let alerts = "\(v1)/alerts"
@@ -70,57 +62,65 @@ class ApiClient {
         throw lastError ?? ApiError.serverError
     }
 
-    // MARK: - 通用 GET（含重試 + 磁碟快取）
+    // MARK: - 通用 GET（含重試 + 磁碟快取 + 離線 fallback）
     private func get<T: Codable>(path: String, params: [String: String]? = nil) async throws -> T {
         // 構建快取 key
         let cacheKey = "\(path):\(params?.sorted(by: { $0.key < $1.key }).description ?? "")"
 
-        // 先檢查磁碟快取
+        // 先檢查記憶體快取（未過期）
         if let cached: T = DiskCacheManager.shared.getCached(key: cacheKey) {
             return cached
         }
 
-        // 發起網路請求
-        return try await withRetry { [self] in
-            let urlString = ApiEndpoints.baseURL + path
+        // 發起網路請求（含離線 fallback）
+        do {
+            return try await withRetry { [self] in
+                let urlString = ApiEndpoints.baseURL + path
 
-            guard var components = URLComponents(string: urlString) else {
-                throw ApiError.invalidURL
-            }
-
-            if let params = params, !params.isEmpty {
-                components.queryItems = params.map { URLQueryItem(name: $0.key, value: $0.value) }
-            }
-
-            guard let url = components.url else {
-                throw ApiError.invalidURL
-            }
-
-            var request = URLRequest(url: url)
-            request.setValue("application/json", forHTTPHeaderField: "Accept")
-            request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
-
-            let (data, response) = try await session.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200...299).contains(httpResponse.statusCode) else {
-                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-                if statusCode == 404 {
-                    throw ApiError.notFound
+                guard var components = URLComponents(string: urlString) else {
+                    throw ApiError.invalidURL
                 }
-                throw ApiError.serverError
+
+                if let params = params, !params.isEmpty {
+                    components.queryItems = params.map { URLQueryItem(name: $0.key, value: $0.value) }
+                }
+
+                guard let url = components.url else {
+                    throw ApiError.invalidURL
+                }
+
+                var request = URLRequest(url: url)
+                request.setValue("application/json", forHTTPHeaderField: "Accept")
+                request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
+
+                let (data, response) = try await session.data(for: request)
+
+                guard let httpResponse = response as? HTTPURLResponse,
+                      (200...299).contains(httpResponse.statusCode) else {
+                    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                    if statusCode == 404 {
+                        throw ApiError.notFound
+                    }
+                    throw ApiError.serverError
+                }
+
+                let apiResponse = try decoder.decode(ApiResponse<T>.self, from: data)
+
+                guard apiResponse.success, let responseData = apiResponse.data else {
+                    throw ApiError.apiError(apiResponse.message ?? "資料取得失敗")
+                }
+
+                // 存入磁碟快取
+                DiskCacheManager.shared.setCached(responseData, key: cacheKey)
+
+                return responseData
             }
-
-            let apiResponse = try decoder.decode(ApiResponse<T>.self, from: data)
-
-            guard apiResponse.success, let responseData = apiResponse.data else {
-                throw ApiError.apiError(apiResponse.message ?? "資料取得失敗")
+        } catch {
+            // Stale-while-revalidate: 網路失敗時返回過期磁碟快取
+            if let stale: T = DiskCacheManager.shared.getStaleCache(key: cacheKey) {
+                return stale
             }
-
-            // 存入磁碟快取
-            DiskCacheManager.shared.setCached(responseData, key: cacheKey)
-
-            return responseData
+            throw error
         }
     }
 
