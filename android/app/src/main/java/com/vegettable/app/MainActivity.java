@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.vegettable.app.network.ApiClient;
 import com.vegettable.app.ui.home.HomeFragment;
 import com.vegettable.app.ui.search.SearchFragment;
 import com.vegettable.app.ui.favorites.FavoritesFragment;
@@ -32,6 +33,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 初始化 OkHttp 快取
+        ApiClient.init(getApplication());
 
         // 註冊權限請求 Launcher
         locationLauncher = registerForActivityResult(

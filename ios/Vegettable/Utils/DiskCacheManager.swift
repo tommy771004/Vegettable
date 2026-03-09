@@ -63,6 +63,19 @@ class DiskCacheManager {
         try? data.write(to: fileURL)
     }
 
+    /// 取得過期快取 (stale-while-revalidate — 網路失敗時使用)
+    func getStaleCache<T: Decodable>(key: String) -> T? {
+        // 先檢查記憶體 (即使過期也返回)
+        if let (data, _) = memoryCache[key] {
+            return try? decoder.decode(T.self, from: data)
+        }
+
+        // 再檢查磁碟 (不驗證過期時間)
+        let fileURL = cacheDirectory.appendingPathComponent(key.md5Hash)
+        guard let fileData = try? Data(contentsOf: fileURL) else { return nil }
+        return try? decoder.decode(T.self, from: fileData)
+    }
+
     /// 清除特定快取
     func clearCache(key: String) {
         memoryCache.removeValue(forKey: key)

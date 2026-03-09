@@ -6,8 +6,12 @@ struct HomeView: View {
     @State private var products: [ProductSummary] = []
     @State private var selectedCategory: CropCategory = .all
     @State private var isLoading = false
+    @State private var isLoadingMore = false
     @State private var errorMessage: String?
     @State private var loadTask: Task<Void, Never>?
+    @State private var hasMore = false
+    @State private var currentOffset = 0
+    private let pageSize = 20
 
     var body: some View {
         NavigationStack {
@@ -75,6 +79,19 @@ struct HomeView: View {
                                         )
                                     }
                                     .buttonStyle(.plain)
+                                    .onAppear {
+                                        // Infinite scroll — 倒數第 5 個時載入下一頁
+                                        if product.id == products.suffix(5).first?.id && hasMore && !isLoadingMore {
+                                            loadMoreProducts()
+                                        }
+                                    }
+                                }
+
+                                // 載入更多指示器
+                                if isLoadingMore {
+                                    ProgressView()
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 16)
                                 }
                             }
                             .padding(.horizontal, 14)
@@ -96,15 +113,19 @@ struct HomeView: View {
 
         isLoading = true
         errorMessage = nil
+        currentOffset = 0
 
         loadTask = Task {
             do {
-                let result = try await ApiClient.shared.fetchProducts(category: selectedCategory.apiValue)
+                let result = try await ApiClient.shared.fetchProductsPaginated(
+                    category: selectedCategory.apiValue, offset: 0, limit: pageSize)
                 guard !Task.isCancelled else { return }
                 await MainActor.run {
-                    products = result
+                    products = result.items
+                    hasMore = result.hasMore
+                    currentOffset = result.items.count
                     isLoading = false
-                    settings.cacheProducts(result)
+                    settings.cacheProducts(result.items)
                 }
             } catch is CancellationError {
                 // 被取消的請求不處理
@@ -117,6 +138,28 @@ struct HomeView: View {
                         products = cached
                         errorMessage = nil
                     }
+                }
+            }
+        }
+    }
+
+    private func loadMoreProducts() {
+        guard hasMore, !isLoadingMore else { return }
+        isLoadingMore = true
+
+        Task {
+            do {
+                let result = try await ApiClient.shared.fetchProductsPaginated(
+                    category: selectedCategory.apiValue, offset: currentOffset, limit: pageSize)
+                await MainActor.run {
+                    products.append(contentsOf: result.items)
+                    hasMore = result.hasMore
+                    currentOffset += result.items.count
+                    isLoadingMore = false
+                }
+            } catch {
+                await MainActor.run {
+                    isLoadingMore = false
                 }
             }
         }

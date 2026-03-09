@@ -1,7 +1,10 @@
 package com.vegettable.app.network;
 
+import android.app.Application;
+
 import com.vegettable.app.BuildConfig;
 
+import okhttp3.Cache;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -10,6 +13,7 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -19,9 +23,15 @@ import java.util.concurrent.TimeUnit;
 public class ApiClient {
 
     private static volatile ApiClient instance;
+    private static Application appContext;
     private final ApiService apiService;
 
     private static final int MAX_RETRIES = 3;
+    private static final long CACHE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+    public static void init(Application app) {
+        appContext = app;
+    }
 
     private ApiClient() {
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
@@ -65,13 +75,20 @@ public class ApiClient {
             throw lastException != null ? lastException : new IOException("重試失敗");
         };
 
-        OkHttpClient client = new OkHttpClient.Builder()
+        OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(15, TimeUnit.SECONDS)
                 .addInterceptor(retryInterceptor)
-                .addInterceptor(logging)
-                .build();
+                .addInterceptor(logging);
+
+        // OkHttp 磁碟快取 (10 MB)
+        if (appContext != null) {
+            File cacheDir = new File(appContext.getCacheDir(), "http_cache");
+            httpBuilder.cache(new Cache(cacheDir, CACHE_SIZE));
+        }
+
+        OkHttpClient client = httpBuilder.build();
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BuildConfig.API_BASE_URL)
