@@ -306,9 +306,14 @@ struct DetailView: View {
                     recipes = r
                     isLoading = false
                 }
+            } catch ApiError.notFound {
+                await MainActor.run {
+                    errorMessage = "找不到「\(cropName)」的交易資料，請確認作物名稱是否正確"
+                    isLoading = false
+                }
             } catch {
                 await MainActor.run {
-                    errorMessage = "載入失敗: \(error.localizedDescription)"
+                    errorMessage = error.localizedDescription
                     isLoading = false
                 }
             }

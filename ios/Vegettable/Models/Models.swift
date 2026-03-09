@@ -66,6 +66,7 @@ struct ProductDetail: Codable {
     let priceLevel: String
     let trend: String
     let dailyPrices: [DailyPrice]
+    let dailyPricesForPrediction: [DailyPrice]
     let monthlyPrices: [MonthlyPrice]
 }
 

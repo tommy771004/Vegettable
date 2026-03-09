@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 蔬菜大葉（主體）-->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,20
+            C54,20 30,28 26,50
+            C22,72 38,82 54,84
+            C70,82 86,72 82,50
+            C78,28 54,20 54,20Z"/>
+
+    <!-- 中間葉脈 -->
+    <path
+        android:fillColor="#1B8A50"
+        android:strokeWidth="0"
+        android:pathData="M54,20 L54,84"
+        android:strokeColor="#00000000"/>
+    <path
+        android:fillColor="#1B8A50"
+        android:pathData="M54,84
+            C54,84 53,82 53,80
+            L53,24
+            C53,22 54,20 54,20
+            C54,20 55,22 55,24
+            L55,80
+            C55,82 54,84 54,84Z"/>
+
+    <!-- 左側葉脈 -->
+    <path
+        android:fillColor="#1B8A50"
+        android:pathData="M54,40
+            C54,40 42,44 36,52
+            C36,52 35,53 36,54
+            C37,55 38,54 38,54
+            C43,47 54,43 54,43Z"/>
+
+    <!-- 右側葉脈 -->
+    <path
+        android:fillColor="#1B8A50"
+        android:pathData="M54,40
+            C54,40 66,44 72,52
+            C72,52 73,53 72,54
+            C71,55 70,54 70,54
+            C65,47 54,43 54,43Z"/>
+
+    <!-- 左側下葉脈 -->
+    <path
+        android:fillColor="#1B8A50"
+        android:pathData="M54,58
+            C54,58 40,60 33,66
+            C33,66 32,67 33,68
+            C34,69 35,68 35,68
+            C41,63 54,61 54,61Z"/>
+
+    <!-- 右側下葉脈 -->
+    <path
+        android:fillColor="#1B8A50"
+        android:pathData="M54,58
+            C54,58 68,60 75,66
+            C75,66 76,67 75,68
+            C74,69 73,68 73,68
+            C67,63 54,61 54,61Z"/>
+
+    <!-- 莖部 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M51,84
+            C51,84 50,90 50,92
+            C50,94 52,95 54,95
+            C56,95 58,94 58,92
+            C58,90 57,84 57,84Z"/>
+
+    <!-- 價格標籤小圓點（右下角裝飾） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.6"
+        android:pathData="M72,70 A5,5 0 1,1 72,69.99Z"/>
+
+    <!-- 小葉片（左上角裝飾）-->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.5"
+        android:pathData="M34,34
+            C34,34 28,32 26,38
+            C24,44 30,46 34,44
+            C38,42 38,34 34,34Z"/>
+</vector>

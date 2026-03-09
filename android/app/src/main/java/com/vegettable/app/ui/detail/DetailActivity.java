@@ -116,6 +116,13 @@ public class DetailActivity extends AppCompatActivity {
                 : android.R.drawable.btn_star_big_off);
     }
 
+    /**
+     * Loads detailed information for the current crop and updates the UI accordingly.
+     *
+     * Shows a progress indicator, requests product detail for `cropName`, and on a successful response
+     * displays the received ProductDetail via `displayDetail`. The progress indicator is hidden when
+     * the response completes or fails. If the activity is finishing or destroyed, no UI updates occur.
+     */
     private void loadProductDetail() {
         progressDetail.setVisibility(View.VISIBLE);
 
@@ -310,6 +317,14 @@ public class DetailActivity extends AppCompatActivity {
         return row;
     }
 
+    /**
+     * Loads the price prediction for the current crop and updates the prediction card UI.
+     *
+     * <p>Requests a remote prediction and, on a successful response with valid data,
+     * makes the prediction card visible, populates the prediction text (predicted price,
+     * trend arrow, percent change, confidence, and reasoning), and sets the confidence progress.
+     * Failures are silently ignored and do not modify the UI.</p>
+     */
     private void loadPrediction() {
         if (cropName == null) return;
 
@@ -340,6 +355,13 @@ public class DetailActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Loads recipe data for the current crop and, on success, shows the recipes card and populates the recipe list.
+     *
+     * Performs a network request for recipes associated with `cropName`. If the activity is finishing/destroyed or
+     * `cropName` is null, the method returns without action. On a successful API response containing non-empty data,
+     * `cardRecipes` is made visible and `displayRecipes` is called with the retrieved list. Failures are handled silently.
+     */
     private void loadRecipes() {
         if (cropName == null) return;
 
@@ -367,6 +389,15 @@ public class DetailActivity extends AppCompatActivity {
 
     private void displayRecipes(List<Recipe> recipes) {
         layoutRecipes.removeAllViews();
+
+        // 從 theme 取得顏色，支援 Dark Mode
+        TypedValue typedValue = new TypedValue();
+        getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true);
+        int primaryTextColor = typedValue.data;
+
+        getTheme().resolveAttribute(com.google.android.material.R.attr.colorOnSurfaceVariant, typedValue, true);
+        int secondaryTextColor = typedValue.data;
+
         for (Recipe r : recipes) {
             LinearLayout item = new LinearLayout(this);
             item.setOrientation(LinearLayout.VERTICAL);
@@ -375,12 +406,12 @@ public class DetailActivity extends AppCompatActivity {
             TextView tvName = new TextView(this);
             tvName.setText(r.getName() + " (" + r.getCookTimeMinutes() + "分)");
             tvName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            tvName.setTextColor(Color.parseColor("#0F1419"));
+            tvName.setTextColor(primaryTextColor);
 
             TextView tvDesc = new TextView(this);
             tvDesc.setText(r.getDescription());
             tvDesc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-            tvDesc.setTextColor(Color.parseColor("#536471"));
+            tvDesc.setTextColor(secondaryTextColor);
 
             item.addView(tvName);
             item.addView(tvDesc);

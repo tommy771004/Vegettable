@@ -35,6 +35,10 @@ public class ProductDetailDto
     /// <summary>近七日每日均價</summary>
     public List<DailyPriceDto> DailyPrices { get; set; } = new();
 
+    /// <summary>近14日每日均價（供預測使用，不序列化至 API 回應）</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<DailyPriceDto> DailyPricesForPrediction { get; set; } = new();
+
     /// <summary>近三年月均價 (用於長期趨勢圖)</summary>
     public List<MonthlyPriceDto> MonthlyPrices { get; set; } = new();
 }

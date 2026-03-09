@@ -10,6 +10,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -100,15 +101,50 @@ public class MapActivity extends AppCompatActivity {
             this.name = name; this.address = address; this.region = region;
             this.lat = lat; this.lng = lng;
         }
+        String getName() { return name; }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof MarketItem)) return false;
+            MarketItem that = (MarketItem) o;
+            return Double.compare(that.lat, lat) == 0
+                    && Double.compare(that.lng, lng) == 0
+                    && name.equals(that.name)
+                    && address.equals(that.address)
+                    && region.equals(that.region);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = name.hashCode();
+            result = 31 * result + address.hashCode();
+            result = 31 * result + region.hashCode();
+            long latBits = Double.doubleToLongBits(lat);
+            result = 31 * result + (int) (latBits ^ (latBits >>> 32));
+            long lngBits = Double.doubleToLongBits(lng);
+            result = 31 * result + (int) (lngBits ^ (lngBits >>> 32));
+            return result;
+        }
     }
 
     // ─── Adapter ────────────────────────────────────────────
     class MarketAdapter extends RecyclerView.Adapter<MarketAdapter.VH> {
         private List<MarketItem> items = new ArrayList<>();
 
-        void setItems(List<MarketItem> items) {
-            this.items = items;
-            notifyDataSetChanged();
+        void setItems(List<MarketItem> newItems) {
+            DiffUtil.DiffResult result = DiffUtil.calculateDiff(new DiffUtil.Callback() {
+                @Override public int getOldListSize() { return items.size(); }
+                @Override public int getNewListSize() { return newItems.size(); }
+                @Override public boolean areItemsTheSame(int oldPos, int newPos) {
+                    return items.get(oldPos).getName().equals(newItems.get(newPos).getName());
+                }
+                @Override public boolean areContentsTheSame(int oldPos, int newPos) {
+                    return items.get(oldPos).equals(newItems.get(newPos));
+                }
+            });
+            this.items = new ArrayList<>(newItems);
+            result.dispatchUpdatesTo(this);
         }
 
         @NonNull @Override

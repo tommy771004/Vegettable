@@ -5,8 +5,10 @@ enum ApiEndpoints {
     #if DEBUG
     static let baseURL = "http://localhost:5180"
     #else
-    static let baseURL = "https://your-production-api.com"
+    // ⚠️ 正式發佈前請替換為真實 API URL（或透過 Info.plist / xcconfig 注入）
+    static let baseURL = "https://api.vegettable.app"
     #endif
+
 
     static let products = "/api/products"
     static let productsPaginated = "/api/products/paginated"
@@ -17,6 +19,18 @@ enum ApiEndpoints {
     static let alerts = "/api/alerts"
     static let prediction = "/api/prediction"
     static let seasonal = "/api/prediction/seasonal"
+
+    // API 版本（配合後端 API Versioning）
+    private static let v1 = "/api"  // 目前後端 AssumeDefaultVersionWhenUnspecified = true，路徑不變
+
+    static let products = "\(v1)/products"
+    static let searchProducts = "\(v1)/products/search"
+    static let markets = "\(v1)/markets"
+    static let marketCompare = "\(v1)/markets/compare"
+    static let alerts = "\(v1)/alerts"
+    static let prediction = "\(v1)/prediction"
+    static let seasonal = "\(v1)/prediction/seasonal"
+
     static let health = "/health"
 }
 
@@ -88,7 +102,12 @@ class ApiClient {
 
             let (data, response) = try await session.data(for: request)
 
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                if statusCode == 404 {
+                    throw ApiError.notFound
+                }
                 throw ApiError.serverError
             }
 
@@ -119,7 +138,12 @@ class ApiClient {
 
             let (data, response) = try await session.data(for: request)
 
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                if statusCode == 404 {
+                    throw ApiError.notFound
+                }
                 throw ApiError.serverError
             }
 
@@ -260,6 +284,7 @@ class ApiClient {
 enum ApiError: LocalizedError {
     case invalidURL
     case serverError
+    case notFound
     case apiError(String)
     case offline
 
@@ -267,6 +292,7 @@ enum ApiError: LocalizedError {
         switch self {
         case .invalidURL: return "無效的 URL"
         case .serverError: return "伺服器錯誤"
+        case .notFound: return "找不到指定的資源"
         case .apiError(let msg): return msg
         case .offline: return "目前處於離線狀態"
         }

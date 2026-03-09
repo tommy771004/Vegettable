@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using VegettableApi.Models;
 
@@ -11,11 +12,13 @@ public class ProductService : IProductService
 {
     private readonly IMoaApiService _moaApi;
     private readonly ILogger<ProductService> _logger;
+    private readonly IMemoryCache _cache;
 
-    public ProductService(IMoaApiService moaApi, ILogger<ProductService> logger)
+    public ProductService(IMoaApiService moaApi, ILogger<ProductService> logger, IMemoryCache cache)
     {
         _moaApi = moaApi;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task<List<ProductSummaryDto>> GetRecentProductsAsync(string? category = null)
@@ -54,6 +57,9 @@ public class ProductService : IProductService
         var startDate = endDate.AddDays(-14);
         var recentData = await _moaApi.FetchFarmTransDataAsync(startDate, endDate, cropName: cropName, top: 5000);
 
+        if (recentData.Count == 0)
+            throw new KeyNotFoundException($"找不到作物「{cropName}」的交易資料");
+
         // 每日聚合
         var dailyPrices = AggregateDailyPrices(recentData);
 
@@ -91,6 +97,7 @@ public class ProductService : IProductService
             PriceLevel = priceLevel,
             Trend = trend,
             DailyPrices = dailyPrices.TakeLast(7).ToList(),
+            DailyPricesForPrediction = dailyPrices,
             MonthlyPrices = monthlyPrices,
         };
     }
@@ -123,7 +130,12 @@ public class ProductService : IProductService
 
     public async Task<List<ProductSummaryDto>> SearchProductsAsync(string keyword)
     {
-        var allProducts = await GetRecentProductsAsync();
+        var cacheKey = "all_products_summary";
+        if (!_cache.TryGetValue(cacheKey, out List<ProductSummaryDto>? allProducts) || allProducts is null)
+        {
+            allProducts = await GetRecentProductsAsync();
+            _cache.Set(cacheKey, allProducts, TimeSpan.FromMinutes(30));
+        }
         var kw = keyword.Trim().ToLower();
 
         return allProducts.Where(p =>
@@ -178,6 +190,10 @@ public class ProductService : IProductService
 
     private async Task<Dictionary<string, decimal>> FetchHistoricalAverageAsync()
     {
+        var cacheKey = $"historical_avg_{DateTime.Today.Month}";
+        if (_cache.TryGetValue(cacheKey, out Dictionary<string, decimal>? cached) && cached is not null)
+            return cached;
+
         var now = DateTime.Today;
         var currentMonth = now.Month;
         var avgMap = new Dictionary<string, decimal>();
@@ -203,6 +219,7 @@ public class ProductService : IProductService
             avgMap[group.Key] = Math.Round(group.Average(g => g.AvgPrice), 1);
         }
 
+        _cache.Set(cacheKey, avgMap, TimeSpan.FromMinutes(60));
         return avgMap;
     }
 
@@ -422,13 +439,15 @@ public class ProductService : IProductService
     private static string InferCategory(string cropCode)
     {
         if (string.IsNullOrEmpty(cropCode)) return "vegetable";
-        var prefix = cropCode[0];
-        return prefix switch
+        return cropCode[0] switch
         {
             'L' or 'S' => "vegetable",
-            'F' => "fruit",
-            'B' => "flower",
-            _ => "vegetable",
+            'F'        => "fruit",
+            'B'        => "flower",
+            'A'        => "fish",       // 漁產
+            'P'        => "poultry",    // 畜禽
+            'R'        => "rice",       // 白米
+            _          => "vegetable",
         };
     }
 

@@ -8,6 +8,7 @@ namespace VegettableApi.Services;
 /// <summary>
 /// 農業部開放資料 API 服務實作
 /// 負責呼叫 data.moa.gov.tw 取得農產品交易行情
+/// 快取策略：目前使用 IMemoryCache（可替換為 IDistributedCache/Redis）
 /// </summary>
 public class MoaApiService : IMoaApiService
 {

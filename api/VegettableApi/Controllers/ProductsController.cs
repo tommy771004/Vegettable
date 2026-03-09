@@ -89,12 +89,19 @@ public class ProductsController : ControllerBase
     /// <param name="cropName">作物名稱</param>
     [HttpGet("{cropName}")]
     [ProducesResponseType(typeof(ApiResponse<ProductDetailDto>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<object>), 404)]
     public async Task<IActionResult> GetProductDetail(string cropName)
     {
         if (string.IsNullOrWhiteSpace(cropName))
             return BadRequest(ApiResponse<object>.Fail("請提供作物名稱"));
-
-        var detail = await _productService.GetProductDetailAsync(cropName);
-        return Ok(ApiResponse<ProductDetailDto>.Ok(detail));
+        try
+        {
+            var detail = await _productService.GetProductDetailAsync(cropName);
+            return Ok(ApiResponse<ProductDetailDto>.Ok(detail));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(ex.Message));
+        }
     }
 }

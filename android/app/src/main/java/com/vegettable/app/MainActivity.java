@@ -16,13 +16,22 @@ import com.vegettable.app.util.PermissionManager;
 
 public class MainActivity extends AppCompatActivity {
 
+
     private ActivityResultLauncher<String[]> locationLauncher;
     private ActivityResultLauncher<String> notificationLauncher;
+
+    private HomeFragment homeFragment;
+    private SearchFragment searchFragment;
+    private FavoritesFragment favoritesFragment;
+    private SettingsFragment settingsFragment;
+    private Fragment activeFragment;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
 
         // 註冊權限請求 Launcher
         locationLauncher = registerForActivityResult(
@@ -50,36 +59,37 @@ public class MainActivity extends AppCompatActivity {
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
 
-        // 預設載入首頁
-        if (savedInstanceState == null) {
-            loadFragment(new HomeFragment());
-        }
+        homeFragment = new HomeFragment();
+        searchFragment = new SearchFragment();
+        favoritesFragment = new FavoritesFragment();
+        settingsFragment = new SettingsFragment();
 
+
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.fragment_container, settingsFragment).hide(settingsFragment)
+                .add(R.id.fragment_container, favoritesFragment).hide(favoritesFragment)
+                .add(R.id.fragment_container, searchFragment).hide(searchFragment)
+                .add(R.id.fragment_container, homeFragment)
+                .commit();
+
+        activeFragment = homeFragment;
+
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         bottomNav.setOnItemSelectedListener(item -> {
-            Fragment fragment;
+            Fragment target;
             int id = item.getItemId();
+            if (id == R.id.nav_home) target = homeFragment;
+            else if (id == R.id.nav_search) target = searchFragment;
+            else if (id == R.id.nav_favorites) target = favoritesFragment;
+            else if (id == R.id.nav_settings) target = settingsFragment;
+            else return false;
 
-            if (id == R.id.nav_home) {
-                fragment = new HomeFragment();
-            } else if (id == R.id.nav_search) {
-                fragment = new SearchFragment();
-            } else if (id == R.id.nav_favorites) {
-                fragment = new FavoritesFragment();
-            } else if (id == R.id.nav_settings) {
-                fragment = new SettingsFragment();
-            } else {
-                return false;
-            }
-
-            loadFragment(fragment);
+            getSupportFragmentManager().beginTransaction()
+                    .hide(activeFragment)
+                    .show(target)
+                    .commit();
+            activeFragment = target;
             return true;
         });
-    }
-
-    private void loadFragment(Fragment fragment) {
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .commit();
     }
 }
