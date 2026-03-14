@@ -7,15 +7,7 @@ namespace VegettableApi.Services;
 /// </summary>
 public interface IMoaApiService
 {
-    /// <summary>
-    /// 取得農產品交易行情原始資料
-    /// </summary>
-    /// <param name="startDate">起始日期 (西元)</param>
-    /// <param name="endDate">結束日期 (西元)</param>
-    /// <param name="cropName">作物名稱 (可選)</param>
-    /// <param name="market">市場名稱 (可選)</param>
-    /// <param name="top">最多回傳筆數</param>
-    /// <param name="skip">略過筆數</param>
+    /// <summary>取得農產品（蔬果）交易行情 (FarmTransData)</summary>
     Task<List<MoaRawData>> FetchFarmTransDataAsync(
         DateTime? startDate = null,
         DateTime? endDate = null,
@@ -23,4 +15,26 @@ public interface IMoaApiService
         string? market = null,
         int top = 20000,
         int skip = 0);
+
+    /// <summary>取得漁產品交易行情 (AquaticTransData)</summary>
+    Task<List<AquaticRawData>> FetchAquaticTransDataAsync(
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        string? fishName = null,
+        string? market = null,
+        int top = 10000);
+
+    /// <summary>取得畜產品交易行情 (LivestockTransData)</summary>
+    Task<List<LivestockRawData>> FetchLivestockTransDataAsync(
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        string? livestockName = null,
+        int top = 10000);
+
+    /// <summary>取得產銷履歷與有機蔬果行情 (TAPData)</summary>
+    Task<List<OrganicRawData>> FetchOrganicTransDataAsync(
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        string? cropName = null,
+        int top = 10000);
 }

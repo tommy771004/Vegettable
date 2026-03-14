@@ -1,8 +1,0 @@
-c:\Users\Tommy\Documents\api\VegettableApi\obj\Debug\net8.0\VegettableApi.csproj.AssemblyReference.cache
-c:\Users\Tommy\Documents\api\VegettableApi\obj\Debug\net8.0\rpswa.dswa.cache.json
-c:\Users\Tommy\Documents\api\VegettableApi\obj\Debug\net8.0\VegettableApi.GeneratedMSBuildEditorConfig.editorconfig
-c:\Users\Tommy\Documents\api\VegettableApi\obj\Debug\net8.0\VegettableApi.AssemblyInfoInputs.cache
-c:\Users\Tommy\Documents\api\VegettableApi\obj\Debug\net8.0\VegettableApi.AssemblyInfo.cs
-c:\Users\Tommy\Documents\api\VegettableApi\obj\Debug\net8.0\VegettableApi.csproj.CoreCompileInputs.cache
-c:\Users\Tommy\Documents\api\VegettableApi\obj\Debug\net8.0\VegettableApi.MvcApplicationPartsAssemblyInfo.cs
-c:\Users\Tommy\Documents\api\VegettableApi\obj\Debug\net8.0\VegettableApi.MvcApplicationPartsAssemblyInfo.cache

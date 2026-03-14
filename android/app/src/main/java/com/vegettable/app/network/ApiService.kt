@@ -1,9 +1,12 @@
 package com.vegettable.app.network
 
 import com.vegettable.app.model.ApiResponse
+import com.vegettable.app.model.AquaticPrice
 import com.vegettable.app.model.Category
 import com.vegettable.app.model.CreateAlertRequest
+import com.vegettable.app.model.LivestockPrice
 import com.vegettable.app.model.Market
+import com.vegettable.app.model.OrganicPrice
 import com.vegettable.app.model.MarketPrice
 import com.vegettable.app.model.PriceAlert
 import com.vegettable.app.model.PricePrediction
@@ -97,6 +100,32 @@ interface ApiService {
     // ─── Categories ──────────────────────────────────────────
     @GET("/api/categories")
     fun getCategories(): Call<ApiResponse<MutableList<Category?>?>?>?
+
+    // ─── Fish (漁產品行情) ────────────────────────────────────
+    @GET("/api/fish")
+    fun getFishPrices(
+        @Query("fishName") fishName: String?,
+        @Query("market") market: String?
+    ): Call<ApiResponse<MutableList<AquaticPrice?>?>?>?
+
+    @GET("/api/fish/{marketName}/prices")
+    fun getFishPricesByMarket(
+        @Path("marketName") marketName: String?,
+        @Query("fishName") fishName: String?
+    ): Call<ApiResponse<MutableList<AquaticPrice?>?>?>?
+
+    // ─── Livestock (畜產品行情) ───────────────────────────────
+    @GET("/api/livestock")
+    fun getLivestockPrices(
+        @Query("livestockName") livestockName: String?
+    ): Call<ApiResponse<MutableList<LivestockPrice?>?>?>?
+
+    // ─── Organic (有機/產銷履歷行情) ─────────────────────────
+    @GET("/api/organic")
+    fun getOrganicPrices(
+        @Query("cropName") cropName: String?,
+        @Query("certType") certType: String?
+    ): Call<ApiResponse<MutableList<OrganicPrice?>?>?>?
 
     // ─── Health ──────────────────────────────────────────────
     @GET("/health")
