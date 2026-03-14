@@ -11,6 +11,24 @@ struct MainTabView: View {
                     Text("行情")
                 }
 
+            AquaticView()
+                .tabItem {
+                    Image(systemName: "fish.fill")
+                    Text("漁產")
+                }
+
+            LivestockView()
+                .tabItem {
+                    Image(systemName: "fork.knife")
+                    Text("畜產")
+                }
+
+            OrganicView()
+                .tabItem {
+                    Image(systemName: "leaf.fill")
+                    Text("有機")
+                }
+
             SearchView()
                 .tabItem {
                     Image(systemName: "magnifyingglass")

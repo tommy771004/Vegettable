@@ -19,6 +19,7 @@ import com.vegettable.app.model.ApiResponse
 import com.vegettable.app.model.ProductSummary
 import com.vegettable.app.network.ApiClient.Companion.instance
 import com.vegettable.app.ui.adapter.ProductAdapter
+import com.vegettable.app.ui.adapter.SkeletonAdapter
 import com.vegettable.app.ui.detail.DetailActivity
 import com.vegettable.app.util.PrefsManager
 import retrofit2.Call
@@ -57,6 +58,10 @@ class HomeFragment : Fragment(), ProductAdapter.OnItemClickListener {
         adapter!!.setPriceUnit(prefs!!.priceUnit)
         adapter!!.setShowRetail(prefs!!.isShowRetailPrice)
         binding!!.rvProducts.setAdapter(adapter)
+
+        // 骨架屏
+        binding!!.rvSkeleton.setLayoutManager(LinearLayoutManager(requireContext()))
+        binding!!.rvSkeleton.setAdapter(SkeletonAdapter(8))
     }
 
     private fun setupListeners() {
@@ -95,9 +100,10 @@ class HomeFragment : Fragment(), ProductAdapter.OnItemClickListener {
     }
 
     private fun loadProducts() {
-        // 如果不是下拉刷新觸發的，顯示 ProgressBar
+        // 如果不是下拉刷新觸發的，顯示骨架屏
         if (!binding!!.swipeRefresh.isRefreshing()) {
-            binding!!.progressBar.setVisibility(View.VISIBLE)
+            binding!!.rvSkeleton.setVisibility(View.VISIBLE)
+            binding!!.rvProducts.setVisibility(View.GONE)
         }
         binding!!.layoutError.setVisibility(View.GONE)
 
@@ -110,7 +116,7 @@ class HomeFragment : Fragment(), ProductAdapter.OnItemClickListener {
                     if (!isAdded()) return
 
                     binding!!.swipeRefresh.setRefreshing(false)
-                    binding!!.progressBar.setVisibility(View.GONE)
+                    binding!!.rvSkeleton.setVisibility(View.GONE)
 
                     if (response.isSuccessful() && response.body() != null && response.body()!!.isSuccess && response.body()!!.data != null) {
                         val products: MutableList<ProductSummary> = response.body()!!.data!!.filterNotNull().toMutableList()
@@ -138,7 +144,7 @@ class HomeFragment : Fragment(), ProductAdapter.OnItemClickListener {
                     if (!isAdded()) return
 
                     binding!!.swipeRefresh.setRefreshing(false)
-                    binding!!.progressBar.setVisibility(View.GONE)
+                    binding!!.rvSkeleton.setVisibility(View.GONE)
                     handleLoadError("網路連線不穩定")
                 }
             })

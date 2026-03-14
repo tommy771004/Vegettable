@@ -25,9 +25,9 @@ class ConfigManager {
         case .development:
             return "http://localhost:5180"
         case .staging:
-            return "https://staging-api.example.com"
+            return "https://staging.vegettable.app"
         case .production:
-            return "https://api.example.com"
+            return "https://api.vegettable.app"
         }
     }
     

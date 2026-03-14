@@ -12,8 +12,11 @@ import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.button.MaterialButtonToggleGroup.OnButtonCheckedListener
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.vegettable.app.R
+import com.vegettable.app.ui.aquatic.AquaticActivity
 import com.vegettable.app.ui.compare.CompareActivity
+import com.vegettable.app.ui.livestock.LivestockActivity
 import com.vegettable.app.ui.map.MapActivity
+import com.vegettable.app.ui.organic.OrganicActivity
 import com.vegettable.app.ui.seasonal.SeasonalActivity
 import com.vegettable.app.util.PrefsManager
 
@@ -77,12 +80,19 @@ class SettingsFragment : Fragment() {
             })
 
         view.findViewById<View?>(R.id.btn_map).setOnClickListener(View.OnClickListener { v: View? ->
-            startActivity(
-                Intent(
-                    requireContext(),
-                    MapActivity::class.java
-                )
-            )
+            startActivity(Intent(requireContext(), MapActivity::class.java))
+        })
+
+        view.findViewById<View?>(R.id.btn_aquatic).setOnClickListener(View.OnClickListener { v: View? ->
+            startActivity(Intent(requireContext(), AquaticActivity::class.java))
+        })
+
+        view.findViewById<View?>(R.id.btn_livestock).setOnClickListener(View.OnClickListener { v: View? ->
+            startActivity(Intent(requireContext(), LivestockActivity::class.java))
+        })
+
+        view.findViewById<View?>(R.id.btn_organic).setOnClickListener(View.OnClickListener { v: View? ->
+            startActivity(Intent(requireContext(), OrganicActivity::class.java))
         })
     }
 }

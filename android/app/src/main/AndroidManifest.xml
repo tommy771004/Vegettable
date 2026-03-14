@@ -27,5 +27,8 @@
         <activity android:name=".ui.seasonal.SeasonalActivity" android:parentActivityName=".MainActivity" />
         <activity android:name=".ui.compare.CompareActivity" android:parentActivityName=".MainActivity" />
         <activity android:name=".ui.map.MapActivity" android:parentActivityName=".MainActivity" />
+        <activity android:name=".ui.aquatic.AquaticActivity" android:parentActivityName=".MainActivity" />
+        <activity android:name=".ui.livestock.LivestockActivity" android:parentActivityName=".MainActivity" />
+        <activity android:name=".ui.organic.OrganicActivity" android:parentActivityName=".MainActivity" />
     </application>
 </manifest>

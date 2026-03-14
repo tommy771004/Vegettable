@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.vegettable.app.R
 import com.vegettable.app.model.ProductSummary
@@ -24,9 +25,17 @@ class ProductAdapter(
     private var priceUnit: String? = "kg"
     private var showRetail = false
 
-    fun setItems(items: MutableList<ProductSummary>) {
-        this.items = items
-        notifyDataSetChanged()
+    fun setItems(newItems: MutableList<ProductSummary>) {
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize() = items.size
+            override fun getNewListSize() = newItems.size
+            override fun areItemsTheSame(oldPos: Int, newPos: Int) =
+                items[oldPos].cropCode == newItems[newPos].cropCode
+            override fun areContentsTheSame(oldPos: Int, newPos: Int) =
+                items[oldPos] == newItems[newPos]
+        })
+        items = newItems
+        diff.dispatchUpdatesTo(this)
     }
 
     fun setFavorites(favorites: MutableSet<String?>?) {

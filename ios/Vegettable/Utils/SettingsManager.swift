@@ -3,10 +3,24 @@ import SwiftUI
 class SettingsManager: ObservableObject {
     @AppStorage("priceUnit") var priceUnit: String = "kg"
     @AppStorage("showRetailPrice") var showRetailPrice: Bool = false
-    @AppStorage("darkMode") var darkMode: String = "system"
     @AppStorage("language") var language: String = "zh-TW"
     @AppStorage("selectedMarket") var selectedMarket: String = ""
     @AppStorage("cacheExpiryMinutes") var cacheExpiryMinutes: Int = 60
+    @AppStorage("autoUpdate") var autoUpdate: Bool = true
+
+    // Backed by AppStorage("darkMode") for persistence
+    @AppStorage("darkMode") private var _darkMode: String = "system"
+    @Published var preferredColorScheme: ColorScheme? = nil {
+        didSet {
+            let newValue: String
+            switch preferredColorScheme {
+            case .dark: newValue = "dark"
+            case .light: newValue = "light"
+            default: newValue = "system"
+            }
+            if _darkMode != newValue { _darkMode = newValue }
+        }
+    }
 
     @Published var favorites: Set<String> = [] {
         didSet {
@@ -22,6 +36,11 @@ class SettingsManager: ObservableObject {
     private let cacheManager = CacheManager.shared
 
     init() {
+        switch _darkMode {
+        case "dark": preferredColorScheme = .dark
+        case "light": preferredColorScheme = .light
+        default: preferredColorScheme = nil
+        }
         loadFavorites()
         loadCacheMetadata()
     }
