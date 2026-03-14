@@ -3,7 +3,8 @@ import MapKit
 
 struct MapListView: View {
     @State private var selectedRegion: String? = nil
-
+    @State private var errorMessage: String? = nil
+    private let logger = DebugLogger.shared
     private let regions = ["全部", "北部", "中部", "南部", "東部"]
 
     var filteredMarkets: [MarketLocation] {
@@ -15,91 +16,132 @@ struct MapListView: View {
 
     var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
+                           startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // 區域篩選
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(regions, id: \.self) { region in
-                            LiquidChip(
+                            CategoryChip(
                                 label: region,
                                 isSelected: (selectedRegion ?? "全部") == region || (selectedRegion == nil && region == "全部"),
                                 action: {
+                                    logger.debug("選擇區域: \(region)")
                                     selectedRegion = region == "全部" ? nil : region
                                 }
                             )
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal)
                 }
-                .padding(.vertical, 10)
+                .padding(.vertical, 8)
 
-                ScrollView {
-                    LazyVStack(spacing: 10) {
+                // 錯誤信息顯示
+                if let error = errorMessage {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        Spacer()
+                        Button(action: { errorMessage = nil }) {
+                            Image(systemName: "xmark")
+                                .foregroundColor(.orange)
+                        }
+                    }
+                    .padding(12)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                }
+
+                if filteredMarkets.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "map")
+                            .font(.system(size: 40))
+                            .foregroundColor(AppColors.textTertiary)
+                        Text("未找到市場")
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .frame(maxHeight: .infinity)
+                } else {
+                    List {
                         ForEach(filteredMarkets) { market in
                             GlassCard {
                                 HStack {
-                                    VStack(alignment: .leading, spacing: 5) {
+                                    VStack(alignment: .leading, spacing: 4) {
                                         Text(market.name + "果菜批發市場")
-                                            .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                            .font(.headline)
+                                            .accessibilityLabel("市場: \(market.name)果菜批發市場")
 
                                         Text(market.address)
-                                            .font(.system(size: 13, design: .rounded))
+                                            .font(.caption)
                                             .foregroundColor(AppColors.textSecondary)
 
                                         Text(market.region)
-                                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 3)
-                                            .foregroundColor(AppColors.primary)
-                                            .background(
-                                                Capsule()
-                                                    .fill(AppColors.primary.opacity(0.1))
-                                            )
+                                            .font(.caption2)
+                                            .foregroundColor(AppColors.textTertiary)
                                     }
 
                                     Spacer()
 
-                                    Button("導航") {
-                                        openMaps(market: market)
+                                    Button(action: { openMaps(market: market) }) {
+                                        Text("導航")
                                     }
+                                    .buttonStyle(.borderedProminent)
+                                    .tint(AppColors.primary)
+                                    .controlSize(.small)
                                     .accessibilityLabel("導航至\(market.name)果菜批發市場")
-                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 9)
-                                    .background(
-                                        Capsule()
-                                            .fill(
-                                                LinearGradient(
-                                                    colors: [AppColors.primary, AppColors.primaryLight],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                )
-                                            )
-                                    )
-                                    .shadow(color: AppColors.primary.opacity(0.3), radius: 6, y: 2)
                                 }
-                                .padding(18)
+                                .padding(16)
                             }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                         }
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 24)
+                    .listStyle(.plain)
                 }
             }
         }
         .navigationTitle("批發市場位置")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private func openMaps(market: MarketLocation) {
-        let coordinate = CLLocationCoordinate2D(latitude: market.latitude, longitude: market.longitude)
-        let placemark = MKPlacemark(coordinate: coordinate)
-        let mapItem = MKMapItem(placemark: placemark)
-        mapItem.name = market.name + "果菜批發市場"
-        mapItem.openInMaps(launchOptions: [
-            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
-        ])
+        do {
+            let coordinate = CLLocationCoordinate2D(latitude: market.latitude, longitude: market.longitude)
+            
+            // 驗證座標有效性
+            guard CLLocationCoordinate2DIsValid(coordinate) else {
+                logger.error("無效的座標: \(market.latitude), \(market.longitude)")
+                errorMessage = "市場座標無效，無法導航"
+                return
+            }
+            
+            let placemark = MKPlacemark(coordinate: coordinate)
+            let mapItem = MKMapItem(placemark: placemark)
+            mapItem.name = market.name + "果菜批發市場"
+            
+            logger.info("打開地圖導航: \(mapItem.name)")
+            
+            mapItem.openInMaps(launchOptions: [
+                MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
+            ])
+        } catch {
+            logger.error("導航失敗: \(error.localizedDescription)")
+            errorMessage = "導航功能不可用，請稍後重試"
+        }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        MapListView()
     }
 }

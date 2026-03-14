@@ -6,6 +6,7 @@ class SettingsManager: ObservableObject {
     @AppStorage("darkMode") var darkMode: String = "system"
     @AppStorage("language") var language: String = "zh-TW"
     @AppStorage("selectedMarket") var selectedMarket: String = ""
+    @AppStorage("cacheExpiryMinutes") var cacheExpiryMinutes: Int = 60
 
     @Published var favorites: Set<String> = [] {
         didSet {
@@ -17,8 +18,12 @@ class SettingsManager: ObservableObject {
     @Published var cachedProducts: [ProductSummary] = []
     @Published var cacheTime: Date = .distantPast
 
+    private let logger = LoggerManager.shared
+    private let cacheManager = CacheManager.shared
+
     init() {
         loadFavorites()
+        loadCacheMetadata()
     }
 
     func isFavorite(_ cropCode: String) -> Bool {
@@ -28,8 +33,10 @@ class SettingsManager: ObservableObject {
     func toggleFavorite(_ cropCode: String) {
         if favorites.contains(cropCode) {
             favorites.remove(cropCode)
+            logger.log("移除收藏: \(cropCode)", level: .debug)
         } else {
             favorites.insert(cropCode)
+            logger.log("新增收藏: \(cropCode)", level: .debug)
         }
     }
 
@@ -60,35 +67,68 @@ class SettingsManager: ObservableObject {
     }
 
     func cacheProducts(_ products: [ProductSummary]) {
-        cachedProducts = products
-        cacheTime = Date()
-        if let data = try? JSONEncoder().encode(products) {
-            UserDefaults.standard.set(data, forKey: "cachedProducts")
-            UserDefaults.standard.set(Date(), forKey: "cacheTime")
+        do {
+            cachedProducts = products
+            cacheTime = Date()
+            if let data = try? JSONEncoder().encode(products) {
+                // 同時儲存到磁碟和記憶體
+                cacheManager.setCacheData(data, forKey: "products", expirySeconds: TimeInterval(cacheExpiryMinutes * 60))
+                cacheManager.saveToDisk(products, forKey: "products")
+                UserDefaults.standard.set(data, forKey: "cachedProducts")
+                UserDefaults.standard.set(cacheTime, forKey: "cacheTime")
+                logger.log("快取 \(products.count) 個產品", level: .debug)
+            }
+        } catch {
+            logger.log("快取產品失敗: \(error.localizedDescription)", level: .error)
         }
     }
 
     func loadCachedProducts() -> [ProductSummary]? {
+        // 優先從磁碟載入
+        if let diskProducts: [ProductSummary] = cacheManager.loadFromDisk([ProductSummary].self, forKey: "products") {
+            if !isCacheStale {
+                logger.log("從磁碟載入快取 \(diskProducts.count) 個產品", level: .debug)
+                return diskProducts
+            }
+        }
+        
+        // 次優先從 UserDefaults 載入
         guard let data = UserDefaults.standard.data(forKey: "cachedProducts") else { return nil }
-        return try? JSONDecoder().decode([ProductSummary].self, from: data)
-    }
-
-    /// 載入快取（若未過期）
-    func loadValidCachedProducts() -> [ProductSummary]? {
-        guard !isCacheStale else { return nil }
-        return loadCachedProducts()
+        guard !isCacheStale else {
+            logger.log("快取已過期", level: .debug)
+            clearCache()
+            return nil
+        }
+        do {
+            let products = try JSONDecoder().decode([ProductSummary].self, from: data)
+            logger.log("載入快取 \(products.count) 個產品", level: .debug)
+            return products
+        } catch {
+            logger.log("解碼快取失敗: \(error.localizedDescription)", level: .error)
+            clearCache()
+            return nil
+        }
     }
 
     var isCacheStale: Bool {
         let cacheTime = UserDefaults.standard.object(forKey: "cacheTime") as? Date ?? .distantPast
-        return Date().timeIntervalSince(cacheTime) > 1800 // 30 分鐘過期
+        let expirySeconds = TimeInterval(cacheExpiryMinutes * 60)
+        return Date().timeIntervalSince(cacheTime) > expirySeconds
     }
 
-    var cacheAge: String {
-        let cacheTime = UserDefaults.standard.object(forKey: "cacheTime") as? Date ?? .distantPast
-        let minutes = Int(Date().timeIntervalSince(cacheTime) / 60)
-        if minutes < 1 { return "剛剛更新" }
-        if minutes < 60 { return "\(minutes) 分鐘前更新" }
-        return "\(minutes / 60) 小時前更新"
+    func clearCache() {
+        UserDefaults.standard.removeObject(forKey: "cachedProducts")
+        UserDefaults.standard.removeObject(forKey: "cacheTime")
+        cacheManager.removeFromDisk(forKey: "products")
+        cacheManager.removeCacheData(forKey: "products")
+        cachedProducts = []
+        cacheTime = .distantPast
+        logger.log("清除快取", level: .debug)
+    }
+
+    private func loadCacheMetadata() {
+        if let time = UserDefaults.standard.object(forKey: "cacheTime") as? Date {
+            cacheTime = time
+        }
     }
 }

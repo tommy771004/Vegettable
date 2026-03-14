@@ -4,7 +4,6 @@ struct FavoritesView: View {
     @EnvironmentObject var settings: SettingsManager
     @State private var allProducts: [ProductSummary] = []
     @State private var isLoading = false
-    @State private var errorMessage: String?
 
     var favoriteProducts: [ProductSummary] {
         allProducts.filter { settings.isFavorite($0.cropCode) }
@@ -13,62 +12,41 @@ struct FavoritesView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LiquidGlassBackground()
+                LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
+                               startPoint: .top, endPoint: .bottom)
+                    .ignoresSafeArea()
 
                 if isLoading {
-                    SkeletonListView(count: 3)
-                } else if let error = errorMessage {
-                    Spacer()
-                    VStack(spacing: 14) {
-                        Image(systemName: "wifi.exclamationmark")
-                            .font(.system(size: 40))
-                            .foregroundColor(AppColors.textTertiary)
-                        Text(error)
-                            .font(.system(size: 14, design: .rounded))
-                            .foregroundColor(AppColors.textSecondary)
-                        Button("重試") { loadProducts() }
-                            .buttonStyle(.borderedProminent)
-                            .tint(AppColors.primary)
-                            .clipShape(Capsule())
-                    }
-                    Spacer()
+                    ProgressView("載入中…")
                 } else if favoriteProducts.isEmpty {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 8) {
                         Image(systemName: "heart.slash")
                             .font(.system(size: 48))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [AppColors.textTertiary.opacity(0.6), AppColors.textTertiary],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
+                            .foregroundColor(AppColors.textTertiary)
                         Text("尚未收藏任何產品")
-                            .font(.system(size: 15, design: .rounded))
                             .foregroundColor(AppColors.textSecondary)
                         Text("點擊 ♡ 可加入收藏")
-                            .font(.system(size: 13, design: .rounded))
+                            .font(.caption)
                             .foregroundColor(AppColors.textTertiary)
                     }
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 10) {
-                            ForEach(favoriteProducts) { product in
-                                NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
-                                    ProductRow(
-                                        product: product,
-                                        isFavorite: true,
-                                        priceUnit: settings.priceUnit,
-                                        showRetail: settings.showRetailPrice,
-                                        onFavorite: { settings.toggleFavorite(product.cropCode) }
-                                    )
-                                }
-                                .buttonStyle(.plain)
+                    List {
+                        ForEach(favoriteProducts) { product in
+                            NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
+                                ProductRow(
+                                    product: product,
+                                    isFavorite: true,
+                                    priceUnit: settings.priceUnit,
+                                    showRetail: settings.showRetailPrice,
+                                    onFavorite: { settings.toggleFavorite(product.cropCode) }
+                                )
                             }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 100)
                     }
+                    .listStyle(.plain)
                 }
             }
             .navigationTitle("收藏 (\(settings.favorites.count))")
@@ -78,13 +56,13 @@ struct FavoritesView: View {
     }
 
     private func loadProducts() {
+        // 先嘗試快取
         if let cached = settings.loadCachedProducts() {
             allProducts = cached
             return
         }
 
         isLoading = true
-        errorMessage = nil
         Task {
             do {
                 let products = try await ApiClient.shared.fetchProducts()
@@ -93,10 +71,7 @@ struct FavoritesView: View {
                     isLoading = false
                 }
             } catch {
-                await MainActor.run {
-                    isLoading = false
-                    errorMessage = "載入失敗: \(error.localizedDescription)"
-                }
+                await MainActor.run { isLoading = false }
             }
         }
     }

@@ -4,98 +4,68 @@ struct CompareView: View {
     @State private var cropName = ""
     @State private var results: [MarketPrice] = []
     @State private var isLoading = false
-    @State private var errorMessage: String?
 
     var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
+                           startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Liquid Glass 搜尋框
-                HStack(spacing: 10) {
+                // 搜尋框
+                HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(AppColors.textTertiary)
                     TextField("輸入作物名稱進行比價", text: $cropName)
-                        .font(.system(size: 15, design: .rounded))
-                        .accessibilityLabel("輸入作物名稱進行比價")
                         .onSubmit { compare() }
                 }
-                .padding(14)
-                .background(
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(.ultraThinMaterial)
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.white.opacity(0.4))
-                        RoundedRectangle(cornerRadius: 16)
-                            .strokeBorder(Color.white.opacity(0.5), lineWidth: 0.8)
-                    }
-                )
-                .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
-                .padding(.horizontal, 14)
-                .padding(.top, 4)
+                .padding(12)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding()
 
                 if isLoading {
-                    SkeletonListView(count: 4)
-                } else if let error = errorMessage {
                     Spacer()
-                    VStack(spacing: 14) {
-                        Image(systemName: "wifi.exclamationmark")
-                            .font(.system(size: 40))
-                            .foregroundColor(AppColors.textTertiary)
-                        Text(error)
-                            .font(.system(size: 14, design: .rounded))
-                            .foregroundColor(AppColors.textSecondary)
-                        Button("重試") { compare() }
-                            .buttonStyle(.borderedProminent)
-                            .tint(AppColors.primary)
-                            .clipShape(Capsule())
-                    }
+                    ProgressView()
                     Spacer()
                 } else if results.isEmpty {
                     Spacer()
-                    VStack(spacing: 8) {
-                        Image(systemName: "chart.bar.xaxis.ascending")
-                            .font(.system(size: 40))
-                            .foregroundColor(AppColors.textTertiary.opacity(0.5))
-                        Text("輸入作物名稱後按 Enter 開始比價")
-                            .font(.system(size: 14, design: .rounded))
-                            .foregroundColor(AppColors.textTertiary)
-                    }
+                    Text("輸入作物名稱後按 Enter 開始比價")
+                        .foregroundColor(AppColors.textTertiary)
                     Spacer()
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 10) {
-                            ForEach(results) { mp in
-                                GlassCard {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 5) {
-                                            Text(mp.marketName)
-                                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                            Text(mp.transDate)
-                                                .font(.system(size: 12, design: .rounded))
-                                                .foregroundColor(AppColors.textTertiary)
-                                        }
-
-                                        Spacer()
-
-                                        VStack(alignment: .trailing, spacing: 5) {
-                                            Text(PriceUtils.formatPrice(mp.avgPrice) + " 元/公斤")
-                                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                                                .foregroundColor(AppColors.primary)
-                                            Text("\(PriceUtils.formatPrice(mp.lowerPrice)) ~ \(PriceUtils.formatPrice(mp.upperPrice))")
-                                                .font(.system(size: 11, design: .rounded))
-                                                .foregroundColor(AppColors.textTertiary)
-                                        }
+                    List {
+                        ForEach(results) { mp in
+                            GlassCard {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(mp.marketName)
+                                            .font(.headline)
+                                        Text(mp.transDate)
+                                            .font(.caption)
+                                            .foregroundColor(AppColors.textTertiary)
                                     }
-                                    .padding(18)
+
+                                    Spacer()
+
+                                    VStack(alignment: .trailing, spacing: 4) {
+                                        Text(PriceUtils.formatPrice(mp.avgPrice) + " 元/公斤")
+                                            .font(.callout)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(AppColors.primary)
+                                        Text("\(PriceUtils.formatPrice(mp.lowerPrice)) ~ \(PriceUtils.formatPrice(mp.upperPrice))")
+                                            .font(.caption2)
+                                            .foregroundColor(AppColors.textTertiary)
+                                    }
                                 }
+                                .padding(16)
                             }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.top, 10)
-                        .padding(.bottom, 24)
                     }
+                    .listStyle(.plain)
                 }
             }
         }
@@ -107,7 +77,6 @@ struct CompareView: View {
         guard !name.isEmpty else { return }
 
         isLoading = true
-        errorMessage = nil
         Task {
             do {
                 let result = try await ApiClient.shared.compareMarketPrices(cropName: name)
@@ -116,10 +85,7 @@ struct CompareView: View {
                     isLoading = false
                 }
             } catch {
-                await MainActor.run {
-                    isLoading = false
-                    errorMessage = "比價失敗: \(error.localizedDescription)"
-                }
+                await MainActor.run { isLoading = false }
             }
         }
     }

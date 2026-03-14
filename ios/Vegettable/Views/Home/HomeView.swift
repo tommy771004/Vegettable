@@ -2,101 +2,100 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var settings: SettingsManager
-    @ObservedObject private var network = NetworkMonitor.shared
+    @StateObject private var networkMonitor = NetworkMonitor.shared
     @State private var products: [ProductSummary] = []
+    @State private var filteredProducts: [ProductSummary] = []
     @State private var selectedCategory: CropCategory = .all
     @State private var isLoading = false
-    @State private var isLoadingMore = false
     @State private var errorMessage: String?
-    @State private var loadTask: Task<Void, Never>?
-    @State private var hasMore = false
-    @State private var currentOffset = 0
-    private let pageSize = 20
+    @State private var showOfflineMode = false
+    private let logger = LoggerManager.shared
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Liquid Glass 背景
-                LiquidGlassBackground()
+                LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
+                               startPoint: .top, endPoint: .bottom)
+                    .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // 離線橫幅
-                    if !network.isConnected {
-                        OfflineBanner()
+                    // 網路狀態提示
+                    if !networkMonitor.isConnected {
+                        HStack {
+                            Image(systemName: "wifi.slash")
+                            Text("離線模式 - 顯示快取資料")
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .background(Color.orange.opacity(0.1))
+                        .foregroundColor(Color.orange)
+                        .font(.caption)
                     }
 
-                    // 分類選擇 — 膠囊晶片
+                    // 分類選擇
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(CropCategory.allCases, id: \.rawValue) { cat in
-                                LiquidChip(
+                                CategoryChip(
                                     label: cat.label,
                                     isSelected: selectedCategory == cat,
                                     action: {
-                                        withAnimation(.spring(response: 0.3)) {
-                                            selectedCategory = cat
-                                        }
-                                        loadProducts()
+                                        selectedCategory = cat
+                                        updateFilteredProducts()
                                     }
                                 )
-                                .accessibilityLabel("分類：\(cat.label)")
-                                .accessibilityAddTraits(selectedCategory == cat ? .isSelected : [])
                             }
                         }
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal)
                     }
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 8)
 
                     // 產品列表
                     if isLoading && products.isEmpty {
-                        SkeletonListView()
+                        Spacer()
+                        ProgressView("載入中…")
+                        Spacer()
                     } else if let error = errorMessage, products.isEmpty {
                         Spacer()
-                        VStack(spacing: 14) {
-                            Image(systemName: "wifi.exclamationmark")
-                                .font(.system(size: 40))
+                        VStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 32))
                                 .foregroundColor(AppColors.textTertiary)
                             Text(error)
-                                .font(.system(size: 14, design: .rounded))
                                 .foregroundColor(AppColors.textSecondary)
-                            Button("重試") { loadProducts() }
-                                .buttonStyle(.borderedProminent)
-                                .tint(AppColors.primary)
-                                .clipShape(Capsule())
+                                .multilineTextAlignment(.center)
+                            Button("重試") {
+                                loadProducts()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(AppColors.primary)
                         }
+                        .padding()
+                        Spacer()
+                    } else if filteredProducts.isEmpty {
+                        Spacer()
+                        Text("沒有找到相關產品")
+                            .foregroundColor(AppColors.textTertiary)
                         Spacer()
                     } else {
-                        ScrollView {
-                            LazyVStack(spacing: 10) {
-                                ForEach(products) { product in
-                                    NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
-                                        ProductRow(
-                                            product: product,
-                                            isFavorite: settings.isFavorite(product.cropCode),
-                                            priceUnit: settings.priceUnit,
-                                            showRetail: settings.showRetailPrice,
-                                            onFavorite: { settings.toggleFavorite(product.cropCode) }
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-                                    .onAppear {
-                                        // Infinite scroll — 倒數第 5 個時載入下一頁
-                                        if product.id == products.suffix(5).first?.id && hasMore && !isLoadingMore {
-                                            loadMoreProducts()
-                                        }
-                                    }
+                        List {
+                            ForEach(filteredProducts) { product in
+                                NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
+                                    ProductRow(
+                                        product: product,
+                                        isFavorite: settings.isFavorite(product.cropCode),
+                                        priceUnit: settings.priceUnit,
+                                        showRetail: settings.showRetailPrice,
+                                        onFavorite: { settings.toggleFavorite(product.cropCode) }
+                                    )
                                 }
-
-                                // 載入更多指示器
-                                if isLoadingMore {
-                                    ProgressView()
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 16)
-                                }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.bottom, 100) // 為浮動 Tab Bar 留空間
                         }
+                        .listStyle(.plain)
                         .refreshable { loadProducts() }
                     }
                 }
@@ -107,94 +106,63 @@ struct HomeView: View {
         .onAppear { loadProducts() }
     }
 
+    private func updateFilteredProducts() {
+        if selectedCategory == .all {
+            filteredProducts = products
+        } else {
+            filteredProducts = products.filter { p in
+                p.category == selectedCategory.rawValue
+            }
+        }
+        logger.log("篩選更新: \(selectedCategory.label) - \(filteredProducts.count) 項", level: .debug)
+    }
+
     private func loadProducts() {
-        // 取消前一次未完成的請求，避免競態條件
-        loadTask?.cancel()
+        // 如果離線且有快取，直接使用快取
+        if !networkMonitor.isConnected {
+            if let cached = settings.loadCachedProducts() {
+                products = cached
+                updateFilteredProducts()
+                errorMessage = nil
+                return
+            } else {
+                errorMessage = "網路連線不可用，且無快取資料"
+                return
+            }
+        }
 
         isLoading = true
         errorMessage = nil
-        currentOffset = 0
+        logger.log("載入產品: 分類 = \(selectedCategory.label)", level: .info)
 
-        loadTask = Task {
+        Task {
             do {
-                let result = try await ApiClient.shared.fetchProductsPaginated(
-                    category: selectedCategory.apiValue, offset: 0, limit: pageSize)
-                guard !Task.isCancelled else { return }
+                let result = try await ApiClient.shared.fetchProducts(category: selectedCategory.apiValue)
                 await MainActor.run {
-                    products = result.items
-                    hasMore = result.hasMore
-                    currentOffset = result.items.count
+                    products = result
+                    updateFilteredProducts()
                     isLoading = false
-                    settings.cacheProducts(result.items)
+                    settings.cacheProducts(result)
                 }
-            } catch is CancellationError {
-                // 被取消的請求不處理
             } catch {
-                guard !Task.isCancelled else { return }
                 await MainActor.run {
                     isLoading = false
+                    logger.log("載入失敗: \(error.localizedDescription)", level: .error)
                     errorMessage = "載入失敗: \(error.localizedDescription)"
+
+                    // 嘗試使用快取
                     if let cached = settings.loadCachedProducts() {
                         products = cached
-                        errorMessage = nil
+                        updateFilteredProducts()
+                        errorMessage = "已載入快取資料"
                     }
                 }
             }
         }
     }
-
-    private func loadMoreProducts() {
-        guard hasMore, !isLoadingMore else { return }
-        isLoadingMore = true
-
-        Task {
-            do {
-                let result = try await ApiClient.shared.fetchProductsPaginated(
-                    category: selectedCategory.apiValue, offset: currentOffset, limit: pageSize)
-                await MainActor.run {
-                    products.append(contentsOf: result.items)
-                    hasMore = result.hasMore
-                    currentOffset += result.items.count
-                    isLoadingMore = false
-                }
-            } catch {
-                await MainActor.run {
-                    isLoadingMore = false
-                }
-            }
-        }
-    }
 }
 
-// MARK: - Liquid Glass 背景
-struct LiquidGlassBackground: View {
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [AppColors.background, AppColors.backgroundEnd],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            // 柔和光暈裝飾
-            Circle()
-                .fill(AppColors.primary.opacity(0.06))
-                .frame(width: 300, height: 300)
-                .blur(radius: 80)
-                .offset(x: -100, y: -200)
-
-            Circle()
-                .fill(Color.blue.opacity(0.04))
-                .frame(width: 250, height: 250)
-                .blur(radius: 70)
-                .offset(x: 120, y: 150)
-        }
-    }
-}
-
-// MARK: - Liquid Glass 膠囊晶片
-struct LiquidChip: View {
+struct CategoryChip: View {
     let label: String
     let isSelected: Bool
     let action: () -> Void
@@ -202,32 +170,13 @@ struct LiquidChip: View {
     var body: some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 14, weight: isSelected ? .semibold : .regular, design: .rounded))
-                .padding(.horizontal, 18)
-                .padding(.vertical, 9)
+                .font(.subheadline)
+                .fontWeight(isSelected ? .semibold : .regular)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(isSelected ? AppColors.primary : AppColors.glassBg)
                 .foregroundColor(isSelected ? .white : AppColors.textPrimary)
-                .background(
-                    ZStack {
-                        if isSelected {
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [AppColors.primary, AppColors.primaryLight],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .shadow(color: AppColors.primary.opacity(0.3), radius: 8, y: 2)
-                        } else {
-                            Capsule()
-                                .fill(.ultraThinMaterial)
-                            Capsule()
-                                .fill(Color.white.opacity(0.4))
-                            Capsule()
-                                .strokeBorder(Color.white.opacity(0.5), lineWidth: 0.8)
-                        }
-                    }
-                )
+                .clipShape(Capsule())
         }
     }
 }

@@ -2,104 +2,146 @@ import SwiftUI
 
 struct SearchView: View {
     @EnvironmentObject var settings: SettingsManager
+    @StateObject private var networkMonitor = NetworkMonitor.shared
     @State private var keyword = ""
     @State private var results: [ProductSummary] = []
     @State private var isSearching = false
-    @State private var errorMessage: String?
     @State private var searchTask: Task<Void, Never>?
+    @State private var errorMessage: String?
+    @State private var searchHistory: [String] = []
+    private let logger = LoggerManager.shared
+    private let debugLogger = DebugLogger.shared
 
     var body: some View {
         NavigationStack {
             ZStack {
-                LiquidGlassBackground()
+                LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
+                               startPoint: .top, endPoint: .bottom)
+                    .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Liquid Glass 搜尋欄
-                    HStack(spacing: 10) {
+                    // 網路狀態
+                    if !networkMonitor.isConnected {
+                        HStack {
+                            Image(systemName: "wifi.slash")
+                            Text("離線模式 - 無法搜尋")
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .background(AppColors.warning.opacity(0.1))
+                        .foregroundColor(AppColors.warning)
+                        .font(.caption)
+                    }
+
+                    // 搜尋欄
+                    HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(AppColors.textTertiary)
-                            .font(.system(size: 16))
-                            .accessibilityHidden(true)
                         TextField("搜尋蔬果名稱…", text: $keyword)
-                            .font(.system(size: 15, design: .rounded))
                             .textFieldStyle(.plain)
-                            .accessibilityLabel("搜尋蔬果名稱")
+                            .disabled(!networkMonitor.isConnected)
                             .onChange(of: keyword) { _ in debounceSearch() }
-
-                        if isSearching {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                                .tint(AppColors.primary)
+                            .accessibilityLabel("搜尋蔬果名稱")
+                        if !keyword.isEmpty {
+                            Button(action: { keyword = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(AppColors.textTertiary)
+                            }
+                            .accessibilityLabel("清除搜尋")
                         }
                     }
-                    .padding(14)
-                    .background(
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(.ultraThinMaterial)
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white.opacity(0.4))
-                            RoundedRectangle(cornerRadius: 16)
-                                .strokeBorder(Color.white.opacity(0.5), lineWidth: 0.8)
-                        }
-                    )
-                    .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
-                    .padding(.horizontal, 14)
+                    .padding(12)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
 
                     if !results.isEmpty {
                         Text("找到 \(results.count) 項結果")
-                            .font(.system(size: 13, design: .rounded))
+                            .font(.caption)
                             .foregroundColor(AppColors.textSecondary)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 10)
-                    }
-
-                    if let error = errorMessage, results.isEmpty {
+                            .padding(.horizontal)
+                            .padding(.top, 8)
+                    } else if isSearching {
                         Spacer()
-                        VStack(spacing: 14) {
-                            Image(systemName: "wifi.exclamationmark")
-                                .font(.system(size: 40))
-                                .foregroundColor(AppColors.textTertiary)
+                        ProgressView("搜尋中…")
+                            .accessibilityLabel("正在搜尋")
+                        Spacer()
+                    } else if let error = errorMessage {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 32))
+                                .foregroundColor(AppColors.error)
                             Text(error)
-                                .font(.system(size: 14, design: .rounded))
                                 .foregroundColor(AppColors.textSecondary)
-                            Button("重試") { debounceSearch() }
-                                .buttonStyle(.borderedProminent)
-                                .tint(AppColors.primary)
-                                .clipShape(Capsule())
+                                .multilineTextAlignment(.center)
+                            Button(action: { retrySearch() }) {
+                                Text("重試")
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 24)
+                                    .padding(.vertical, 8)
+                                    .background(AppColors.primary)
+                                    .cornerRadius(8)
+                            }
+                            .accessibilityLabel("重試搜尋")
                         }
+                        .padding()
                         Spacer()
-                    } else if results.isEmpty && !keyword.trimmingCharacters(in: .whitespaces).isEmpty && !isSearching {
+                    } else if !keyword.isEmpty {
                         Spacer()
                         VStack(spacing: 8) {
                             Image(systemName: "magnifyingglass")
-                                .font(.system(size: 40))
-                                .foregroundColor(AppColors.textTertiary.opacity(0.5))
-                            Text("找不到「\(keyword)」的相關結果")
-                                .font(.system(size: 14, design: .rounded))
+                                .font(.system(size: 32))
                                 .foregroundColor(AppColors.textTertiary)
+                            Text("未找到結果")
+                                .foregroundColor(AppColors.textSecondary)
                         }
                         Spacer()
-                    } else {
-                        ScrollView {
-                            LazyVStack(spacing: 10) {
-                                ForEach(results) { product in
-                                    NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
-                                        ProductRow(
-                                            product: product,
-                                            isFavorite: settings.isFavorite(product.cropCode),
-                                            priceUnit: settings.priceUnit,
-                                            showRetail: settings.showRetailPrice,
-                                            onFavorite: { settings.toggleFavorite(product.cropCode) }
-                                        )
+                    } else if !searchHistory.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("搜尋歷史")
+                                .font(.headline)
+                                .foregroundColor(AppColors.textPrimary)
+                                .padding(.horizontal)
+                            
+                            ForEach(searchHistory.prefix(5), id: \.self) { term in
+                                Button(action: { keyword = term; debounceSearch() }) {
+                                    HStack {
+                                        Image(systemName: "clock")
+                                            .foregroundColor(AppColors.textTertiary)
+                                        Text(term)
+                                            .foregroundColor(AppColors.textPrimary)
+                                        Spacer()
                                     }
-                                    .buttonStyle(.plain)
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 8)
                                 }
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.top, 8)
-                            .padding(.bottom, 100)
                         }
+                        .padding(.top, 12)
+                        Spacer()
+                    }
+
+                    if !results.isEmpty {
+                        List {
+                            ForEach(results) { product in
+                                NavigationLink(destination: DetailView(cropName: product.cropName, cropCode: product.cropCode)) {
+                                    ProductRow(
+                                        product: product,
+                                        isFavorite: settings.isFavorite(product.cropCode),
+                                        priceUnit: settings.priceUnit,
+                                        showRetail: settings.showRetailPrice,
+                                        onFavorite: { settings.toggleFavorite(product.cropCode) }
+                                    )
+                                }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+                            }
+                        }
+                        .listStyle(.plain)
                     }
                 }
             }
@@ -114,13 +156,21 @@ struct SearchView: View {
         let kw = keyword.trimmingCharacters(in: .whitespaces)
         guard !kw.isEmpty else {
             results = []
-            isSearching = false
+            return
+        }
+
+        guard networkMonitor.isConnected else {
+            errorMessage = "網路連線不可用"
+            debugLogger.warning("搜尋失敗: 網路未連接")
             return
         }
 
         isSearching = true
+        logger.log("搜尋: \(kw)", level: .debug)
+        debugLogger.debug("開始搜尋: \(kw)")
+
         searchTask = Task {
-            try? await Task.sleep(nanoseconds: 300_000_000)
+            try? await Task.sleep(nanoseconds: 300_000_000) // 300ms 去抖動
             guard !Task.isCancelled else { return }
 
             do {
@@ -128,15 +178,37 @@ struct SearchView: View {
                 await MainActor.run {
                     results = searchResults
                     isSearching = false
+                    addToSearchHistory(kw)
+                    logger.log("搜尋完成: 找到 \(searchResults.count) 項結果", level: .debug)
+                    debugLogger.info("搜尋完成: 找到 \(searchResults.count) 項結果")
                 }
             } catch {
-                if !Task.isCancelled {
-                    await MainActor.run {
-                        isSearching = false
-                        errorMessage = "搜尋失敗: \(error.localizedDescription)"
-                    }
+                await MainActor.run {
+                    isSearching = false
+                    errorMessage = "搜尋失敗: \(error.localizedDescription)"
+                    logger.log("搜尋失敗: \(error.localizedDescription)", level: .error)
+                    debugLogger.error("搜尋失敗: \(error.localizedDescription)")
                 }
             }
         }
     }
+    
+    private func retrySearch() {
+        errorMessage = nil
+        debounceSearch()
+    }
+    
+    private func addToSearchHistory(_ term: String) {
+        if !searchHistory.contains(term) {
+            searchHistory.insert(term, at: 0)
+            if searchHistory.count > 10 {
+                searchHistory.removeLast()
+            }
+        }
+    }
+}
+
+#Preview {
+    SearchView()
+        .environmentObject(SettingsManager())
 }

@@ -8,16 +8,6 @@ struct ApiResponse<T: Codable>: Codable {
     let timestamp: Int64
 }
 
-// MARK: - 分頁回應
-struct PaginatedResponse<T: Codable>: Codable {
-    let items: [T]
-    let offset: Int
-    let limit: Int
-    let total: Int
-    let hasMore: Bool
-    let totalPages: Int
-}
-
 // MARK: - 產品摘要
 struct ProductSummary: Codable, Identifiable {
     let cropCode: String
@@ -66,7 +56,6 @@ struct ProductDetail: Codable {
     let priceLevel: String
     let trend: String
     let dailyPrices: [DailyPrice]
-    let dailyPricesForPrediction: [DailyPrice]
     let monthlyPrices: [MonthlyPrice]
 }
 
@@ -149,7 +138,7 @@ enum CropCategory: String, CaseIterable {
     case vegetable = "vegetable"
     case fruit = "fruit"
     case fish = "fish"
-    case meat = "poultry"
+    case meat = "meat"
     case flower = "flower"
     case rice = "rice"
 
@@ -169,7 +158,7 @@ enum CropCategory: String, CaseIterable {
         switch self {
         case .all: return "square.grid.2x2"
         case .vegetable: return "leaf"
-        case .fruit: return "leaf.circle"
+        case .fruit: return "apple.logo"
         case .fish: return "fish"
         case .meat: return "fork.knife"
         case .flower: return "camera.macro"

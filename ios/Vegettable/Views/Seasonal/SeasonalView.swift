@@ -4,27 +4,22 @@ struct SeasonalView: View {
     @State private var items: [SeasonalInfo] = []
     @State private var selectedCategory: String? = nil
     @State private var isLoading = false
-    @State private var errorMessage: String?
-
-    private let categories: [(label: String, value: String?)] = [
-        ("全部", nil),
-        ("蔬菜", "vegetable"),
-        ("水果", "fruit"),
-        ("魚產", "fish"),
-        ("畜禽", "poultry"),
-        ("白米", "rice"),
-    ]
+    @State private var errorMessage: String? = nil
+    private let logger = DebugLogger.shared
+    private let categories = [("全部", nil as String?), ("蔬菜", "vegetable"), ("水果", "fruit")]
 
     var body: some View {
         ZStack {
-            LiquidGlassBackground()
+            LinearGradient(colors: [AppColors.background, AppColors.backgroundEnd],
+                           startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // 分類
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(categories, id: \.0) { cat in
-                            LiquidChip(
+                            CategoryChip(
                                 label: cat.0,
                                 isSelected: selectedCategory == cat.1,
                                 action: {
@@ -34,70 +29,82 @@ struct SeasonalView: View {
                             )
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal)
                 }
-                .padding(.vertical, 10)
+                .padding(.vertical, 8)
+
+                // 錯誤提示
+                if let error = errorMessage {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        Spacer()
+                        Button(action: { errorMessage = nil; loadSeasonal() }) {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundColor(.orange)
+                        }
+                    }
+                    .padding(12)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                }
 
                 if isLoading {
-                    SkeletonListView(count: 5)
-                } else if let error = errorMessage {
                     Spacer()
-                    VStack(spacing: 14) {
-                        Image(systemName: "wifi.exclamationmark")
-                            .font(.system(size: 40))
-                            .foregroundColor(AppColors.textTertiary)
-                        Text(error)
-                            .font(.system(size: 14, design: .rounded))
-                            .foregroundColor(AppColors.textSecondary)
-                        Button("重試") { loadSeasonal() }
-                            .buttonStyle(.borderedProminent)
-                            .tint(AppColors.primary)
-                            .clipShape(Capsule())
-                    }
+                    ProgressView()
+                        .accessibilityLabel("正在加載季節信息")
                     Spacer()
                 } else if items.isEmpty {
                     Spacer()
-                    VStack(spacing: 8) {
-                        Image(systemName: "leaf.circle")
+                    VStack(spacing: 12) {
+                        Image(systemName: "calendar")
                             .font(.system(size: 40))
-                            .foregroundColor(AppColors.textTertiary.opacity(0.5))
-                        Text("暫無當季資料")
-                            .font(.system(size: 14, design: .rounded))
                             .foregroundColor(AppColors.textTertiary)
+                        Text("未找到季節信息")
+                            .foregroundColor(AppColors.textSecondary)
                     }
                     Spacer()
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 10) {
-                            ForEach(items) { info in
-                                SeasonalRow(info: info)
-                            }
+                    List {
+                        ForEach(items) { info in
+                            SeasonalRow(info: info)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .accessibilityElement(children: .contain)
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 24)
                     }
-                    .refreshable { loadSeasonal() }
+                    .listStyle(.plain)
                 }
             }
         }
         .navigationTitle("季節行事曆")
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear { loadSeasonal() }
     }
 
     private func loadSeasonal() {
         isLoading = true
         errorMessage = nil
+        logger.debug("加載季節信息，分類: \(selectedCategory ?? \"全部")")
+        
         Task {
             do {
                 let result = try await ApiClient.shared.fetchSeasonalInfo(category: selectedCategory)
                 await MainActor.run {
                     items = result
                     isLoading = false
+                    logger.info("季節信息加載完成: \(result.count) 項")
                 }
             } catch {
                 await MainActor.run {
                     isLoading = false
-                    errorMessage = "載入失敗: \(error.localizedDescription)"
+                    errorMessage = "加載失敗: \(error.localizedDescription)"
+                    logger.error("季節信息加載失敗: \(error.localizedDescription)")
                 }
             }
         }
@@ -110,71 +117,67 @@ struct SeasonalRow: View {
 
     var body: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(info.cropName)
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .font(.headline)
+                        .accessibilityLabel("蔬果名稱: \(info.cropName)")
 
                     Spacer()
 
                     Text(info.isInSeason ? "當季" : "非當季")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .foregroundColor(info.isInSeason ? AppColors.primary : AppColors.textTertiary)
-                        .background(
-                            Capsule()
-                                .fill(info.isInSeason ? AppColors.primary.opacity(0.1) : Color.gray.opacity(0.1))
-                                .overlay(
-                                    Capsule()
-                                        .strokeBorder(
-                                            info.isInSeason ? AppColors.primary.opacity(0.2) : Color.gray.opacity(0.15),
-                                            lineWidth: 0.5
-                                        )
-                                )
-                        )
+                        .font(.caption2)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 3)
+                        .foregroundColor(info.isInSeason ? AppColors.primary : .gray)
+                        .background(info.isInSeason ? AppColors.primary.opacity(0.1) : Color.gray.opacity(0.1))
+                        .clipShape(Capsule())
+                        .accessibilityLabel(info.isInSeason ? "目前當季" : "目前非當季")
                 }
 
                 // 12 月份格子
-                HStack(spacing: 3) {
-                    ForEach(1...12, id: \.self) { m in
-                        Text("\(m)")
-                            .font(.system(size: 9, weight: info.peakMonths.contains(m) ? .bold : .regular, design: .rounded))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 26)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(
+                VStack(spacing: 4) {
+                    Text("產季: ")
+                        .font(.caption)
+                        .foregroundColor(AppColors.textSecondary)
+                    
+                    HStack(spacing: 2) {
+                        ForEach(1...12, id: \.self) { m in
+                            VStack(spacing: 2) {
+                                Text("\(m)")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 24)
+                                    .background(
                                         info.peakMonths.contains(m)
-                                            ? LinearGradient(
-                                                colors: [AppColors.primaryLight, AppColors.primary],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                              )
-                                            : (m == currentMonth
-                                                ? LinearGradient(colors: [AppColors.primary.opacity(0.15)], startPoint: .top, endPoint: .bottom)
-                                                : LinearGradient(colors: [Color.white.opacity(0.3)], startPoint: .top, endPoint: .bottom)
-                                              )
+                                            ? AppColors.primaryLight
+                                            : (m == currentMonth ? AppColors.background : Color(hex: "#F5F5F5"))
                                     )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .strokeBorder(Color.white.opacity(0.3), lineWidth: 0.5)
+                                    .foregroundColor(
+                                        info.peakMonths.contains(m) ? .white
+                                            : (m == currentMonth ? AppColors.primary : AppColors.textTertiary)
                                     )
-                            )
-                            .foregroundColor(
-                                info.peakMonths.contains(m) ? .white
-                                    : (m == currentMonth ? AppColors.primary : AppColors.textTertiary)
-                            )
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    .accessibilityLabel("\(m)月: \(info.peakMonths.contains(m) ? \"盛產期\" : \"非盛產期")")
+                            }
+                        }
                     }
                 }
 
                 Text(info.seasonNote)
-                    .font(.system(size: 12, design: .rounded))
+                    .font(.caption2)
                     .foregroundColor(AppColors.textTertiary)
+                    .accessibilityLabel("季節備註: \(info.seasonNote)")
             }
-            .padding(18)
+            .padding(16)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(info.cropName)，\(info.isInSeason ? "當季" : "非當季")，\(info.seasonNote)")
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+    }
+}
+
+#Preview {
+    NavigationStack {
+        SeasonalView()
     }
 }
