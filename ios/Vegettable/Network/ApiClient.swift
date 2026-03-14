@@ -15,6 +15,9 @@ enum ApiEndpoints {
     static let prediction = "/api/prediction"
     static let seasonal = "/api/prediction/seasonal"
     static let categories = "/api/categories"
+    static let fish = "/api/fish"
+    static let livestock = "/api/livestock"
+    static let organic = "/api/organic"
     static let health = "/health"
 }
 
@@ -390,6 +393,37 @@ class ApiClient: ObservableObject {
     // MARK: - Categories API
     func fetchCategories() async throws -> [CategoryInfo] {
         return try await get(path: ApiEndpoints.categories)
+    }
+
+    // MARK: - Fish API
+    func fetchFishPrices(fishName: String? = nil, market: String? = nil) async throws -> [AquaticPrice] {
+        var params: [String: String] = [:]
+        if let fishName = fishName { params["fishName"] = fishName }
+        if let market = market { params["market"] = market }
+        return try await get(path: ApiEndpoints.fish, params: params.isEmpty ? nil : params)
+    }
+
+    func fetchFishPricesByMarket(marketName: String, fishName: String? = nil) async throws -> [AquaticPrice] {
+        guard !marketName.isEmpty else { throw ApiError.invalidInput("市場名稱不能為空") }
+        let encoded = marketName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? marketName
+        var params: [String: String] = [:]
+        if let fishName = fishName { params["fishName"] = fishName }
+        return try await get(path: "\(ApiEndpoints.fish)/\(encoded)/prices", params: params.isEmpty ? nil : params)
+    }
+
+    // MARK: - Livestock API
+    func fetchLivestockPrices(livestockName: String? = nil) async throws -> [LivestockPrice] {
+        var params: [String: String] = [:]
+        if let name = livestockName { params["livestockName"] = name }
+        return try await get(path: ApiEndpoints.livestock, params: params.isEmpty ? nil : params)
+    }
+
+    // MARK: - Organic API
+    func fetchOrganicPrices(cropName: String? = nil, certType: String? = nil) async throws -> [OrganicPrice] {
+        var params: [String: String] = [:]
+        if let name = cropName { params["cropName"] = name }
+        if let cert = certType { params["certType"] = cert }
+        return try await get(path: ApiEndpoints.organic, params: params.isEmpty ? nil : params)
     }
 
     // MARK: - Health

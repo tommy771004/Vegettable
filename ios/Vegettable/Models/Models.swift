@@ -132,6 +132,53 @@ struct Recipe: Codable, Identifiable {
     var id: String { name }
 }
 
+// MARK: - 漁產品行情
+struct AquaticPrice: Codable, Identifiable {
+    let fishCode: String
+    let fishName: String
+    let marketName: String
+    let avgPrice: Decimal
+    let upperPrice: Decimal
+    let lowerPrice: Decimal
+    let volume: Decimal
+    let transDate: String
+    let trend: String // "up" | "down" | "stable"
+
+    var id: String { "\(fishName)_\(marketName)_\(transDate)" }
+}
+
+// MARK: - 畜產品行情
+struct LivestockPrice: Codable, Identifiable {
+    let livestockCode: String
+    let livestockName: String
+    let marketName: String
+    let avgPrice: Decimal
+    let upperPrice: Decimal
+    let lowerPrice: Decimal
+    let headCount: Int
+    let avgWeight: Decimal
+    let transDate: String
+    let trend: String // "up" | "down" | "stable"
+
+    var id: String { "\(livestockName)_\(marketName)_\(transDate)" }
+}
+
+// MARK: - 有機/產銷履歷行情
+struct OrganicPrice: Codable, Identifiable {
+    let cropCode: String
+    let cropName: String
+    let marketName: String
+    let avgPrice: Decimal
+    let upperPrice: Decimal
+    let lowerPrice: Decimal
+    let volume: Decimal
+    let certType: String   // "有機" | "產銷履歷"
+    let transDate: String
+    let premiumPercent: Decimal? // 與一般批發均價差異 %
+
+    var id: String { "\(cropName)_\(certType)_\(marketName)" }
+}
+
 // MARK: - 動態分類（來自 API）
 struct CategoryInfo: Codable, Identifiable {
     let key: String

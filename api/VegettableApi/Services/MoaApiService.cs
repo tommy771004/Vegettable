@@ -7,97 +7,179 @@ namespace VegettableApi.Services;
 
 /// <summary>
 /// 農業部開放資料 API 服務實作
-/// 負責呼叫 data.moa.gov.tw 取得農產品交易行情
-/// 快取策略：目前使用 IMemoryCache（可替換為 IDistributedCache/Redis）
+/// 支援：蔬果、漁產、畜產、有機/產銷履歷行情
+/// 快取策略：IMemoryCache + 請求去重（ConcurrentDictionary）
 /// </summary>
 public class MoaApiService : IMoaApiService
 {
     private readonly HttpClient _httpClient;
     private readonly IMemoryCache _cache;
     private readonly ILogger<MoaApiService> _logger;
+    private readonly IConfiguration _config;
 
-    private const string FarmTransEndpoint = "Service/OpenData/FromM/FarmTransData.aspx";
+    private const string FarmTransEndpoint     = "Service/OpenData/FromM/FarmTransData.aspx";
+    private const string AquaticTransEndpoint  = "Service/OpenData/FromM/AquaticTransData.aspx";
+    private const string LivestockTransEndpoint = "Service/OpenData/FromM/LivestockTransData.aspx";
+    private const string OrganicTransEndpoint  = "Service/OpenData/FromM/TAPData.aspx";
 
-    /// <summary>
-    /// 請求去重：相同 cacheKey 的並行請求只會發出一次 HTTP 呼叫
-    /// </summary>
-    private static readonly ConcurrentDictionary<string, Task<List<MoaRawData>>> _inflightRequests = new();
+    private static readonly ConcurrentDictionary<string, Task<string>> _inflightRequests = new();
 
-    public MoaApiService(HttpClient httpClient, IMemoryCache cache, ILogger<MoaApiService> logger)
+    public MoaApiService(HttpClient httpClient, IMemoryCache cache, ILogger<MoaApiService> logger, IConfiguration config)
     {
         _httpClient = httpClient;
         _cache = cache;
         _logger = logger;
+        _config = config;
     }
 
+    // ─── 蔬果行情 ──────────────────────────────────────────────
+
     public async Task<List<MoaRawData>> FetchFarmTransDataAsync(
-        DateTime? startDate = null,
-        DateTime? endDate = null,
-        string? cropName = null,
-        string? market = null,
-        int top = 20000,
-        int skip = 0)
+        DateTime? startDate = null, DateTime? endDate = null,
+        string? cropName = null, string? market = null,
+        int top = 20000, int skip = 0)
     {
-        // 組合快取 key
+        var cacheMinutes = _config.GetValue("ApiSettings:Cache:FarmTransMinutes", 10);
         var cacheKey = $"moa_farm_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{cropName}_{market}_{top}_{skip}";
 
         if (_cache.TryGetValue(cacheKey, out List<MoaRawData>? cached) && cached is not null)
-        {
-            _logger.LogDebug("Cache hit: {CacheKey}", cacheKey);
             return cached;
-        }
 
-        // 請求去重 — 相同 key 的並行請求共用同一個 Task
-        return await _inflightRequests.GetOrAdd(cacheKey, _ => FetchAndCacheAsync(cacheKey, startDate, endDate, cropName, market, top, skip));
+        var queryParams = BuildBaseParams(top, skip, startDate, endDate);
+        if (!string.IsNullOrWhiteSpace(cropName)) queryParams.Add($"CropName={Uri.EscapeDataString(cropName)}");
+        if (!string.IsNullOrWhiteSpace(market))   queryParams.Add($"Market={Uri.EscapeDataString(market)}");
+
+        var json = await FetchJsonAsync(FarmTransEndpoint, queryParams, cacheKey);
+        var data = Deserialize<MoaRawData>(json);
+        CacheResult(cacheKey, data, cacheMinutes);
+        return data;
     }
 
-    private async Task<List<MoaRawData>> FetchAndCacheAsync(
-        string cacheKey, DateTime? startDate, DateTime? endDate,
-        string? cropName, string? market, int top, int skip)
+    // ─── 漁產行情 ──────────────────────────────────────────────
+
+    public async Task<List<AquaticRawData>> FetchAquaticTransDataAsync(
+        DateTime? startDate = null, DateTime? endDate = null,
+        string? fishName = null, string? market = null,
+        int top = 10000)
     {
-        try
-        {
-            var queryParams = new List<string> { $"$top={top}" };
+        var cacheMinutes = _config.GetValue("ApiSettings:Cache:FishMinutes", 10);
+        var cacheKey = $"moa_fish_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{fishName}_{market}_{top}";
 
-            if (skip > 0) queryParams.Add($"$skip={skip}");
-            if (startDate.HasValue) queryParams.Add($"StartDate={ToRocDate(startDate.Value)}");
-            if (endDate.HasValue) queryParams.Add($"EndDate={ToRocDate(endDate.Value)}");
-            if (!string.IsNullOrWhiteSpace(cropName)) queryParams.Add($"CropName={Uri.EscapeDataString(cropName)}");
-            if (!string.IsNullOrWhiteSpace(market)) queryParams.Add($"Market={Uri.EscapeDataString(market)}");
+        if (_cache.TryGetValue(cacheKey, out List<AquaticRawData>? cached) && cached is not null)
+            return cached;
 
-            var url = $"{FarmTransEndpoint}?{string.Join("&", queryParams)}";
+        var queryParams = BuildBaseParams(top, 0, startDate, endDate);
+        if (!string.IsNullOrWhiteSpace(fishName)) queryParams.Add($"FishName={Uri.EscapeDataString(fishName)}");
+        if (!string.IsNullOrWhiteSpace(market))   queryParams.Add($"Market={Uri.EscapeDataString(market)}");
 
-            _logger.LogInformation("Fetching MOA data: {Url}", url);
-
-            var response = await _httpClient.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-
-            var json = await response.Content.ReadAsStringAsync();
-
-            var data = JsonSerializer.Deserialize<List<MoaRawData>>(json) ?? new List<MoaRawData>();
-
-            // 快取 10 分鐘 (交易行情不需即時)
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromMinutes(10))
-                .SetSize(1);
-
-            _cache.Set(cacheKey, data, cacheOptions);
-
-            _logger.LogInformation("Fetched {Count} records from MOA API", data.Count);
-            return data;
-        }
-        finally
-        {
-            _inflightRequests.TryRemove(cacheKey, out _);
-        }
+        var json = await FetchJsonAsync(AquaticTransEndpoint, queryParams, cacheKey);
+        var data = Deserialize<AquaticRawData>(json);
+        CacheResult(cacheKey, data, cacheMinutes);
+        return data;
     }
 
-    /// <summary>
-    /// 西元年轉民國年日期格式 (YYY.MM.DD)
-    /// </summary>
+    // ─── 畜產行情 ──────────────────────────────────────────────
+
+    public async Task<List<LivestockRawData>> FetchLivestockTransDataAsync(
+        DateTime? startDate = null, DateTime? endDate = null,
+        string? livestockName = null, int top = 10000)
+    {
+        var cacheMinutes = _config.GetValue("ApiSettings:Cache:LivestockMinutes", 10);
+        var cacheKey = $"moa_livestock_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{livestockName}_{top}";
+
+        if (_cache.TryGetValue(cacheKey, out List<LivestockRawData>? cached) && cached is not null)
+            return cached;
+
+        var queryParams = BuildBaseParams(top, 0, startDate, endDate);
+        if (!string.IsNullOrWhiteSpace(livestockName)) queryParams.Add($"LivestockName={Uri.EscapeDataString(livestockName)}");
+
+        var json = await FetchJsonAsync(LivestockTransEndpoint, queryParams, cacheKey);
+        var data = Deserialize<LivestockRawData>(json);
+        CacheResult(cacheKey, data, cacheMinutes);
+        return data;
+    }
+
+    // ─── 有機/產銷履歷行情 ─────────────────────────────────────
+
+    public async Task<List<OrganicRawData>> FetchOrganicTransDataAsync(
+        DateTime? startDate = null, DateTime? endDate = null,
+        string? cropName = null, int top = 10000)
+    {
+        var cacheMinutes = _config.GetValue("ApiSettings:Cache:OrganicMinutes", 30);
+        var cacheKey = $"moa_organic_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{cropName}_{top}";
+
+        if (_cache.TryGetValue(cacheKey, out List<OrganicRawData>? cached) && cached is not null)
+            return cached;
+
+        var queryParams = BuildBaseParams(top, 0, startDate, endDate);
+        if (!string.IsNullOrWhiteSpace(cropName)) queryParams.Add($"CropName={Uri.EscapeDataString(cropName)}");
+
+        var json = await FetchJsonAsync(OrganicTransEndpoint, queryParams, cacheKey);
+        var data = Deserialize<OrganicRawData>(json);
+        CacheResult(cacheKey, data, cacheMinutes);
+        return data;
+    }
+
+    // ─── 共用方法 ──────────────────────────────────────────────
+
+    private List<string> BuildBaseParams(int top, int skip, DateTime? startDate, DateTime? endDate)
+    {
+        var p = new List<string> { $"$top={top}" };
+        if (skip > 0)              p.Add($"$skip={skip}");
+        if (startDate.HasValue)    p.Add($"StartDate={ToRocDate(startDate.Value)}");
+        if (endDate.HasValue)      p.Add($"EndDate={ToRocDate(endDate.Value)}");
+        return p;
+    }
+
+    private async Task<string> FetchJsonAsync(string endpoint, List<string> queryParams, string cacheKey)
+    {
+        var url = $"{endpoint}?{string.Join("&", queryParams)}";
+        _logger.LogInformation("Fetching MOA: {Url}", url);
+
+        // 請求去重 — 相同 key 只發一次 HTTP
+        return await _inflightRequests.GetOrAdd(cacheKey, async _ =>
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsStringAsync();
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP error fetching MOA endpoint: {Endpoint}", endpoint);
+                throw;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON error parsing MOA response from: {Endpoint}", endpoint);
+                throw;
+            }
+            finally
+            {
+                _inflightRequests.TryRemove(cacheKey, out _);
+            }
+        });
+    }
+
+    private static List<T> Deserialize<T>(string json)
+    {
+        return JsonSerializer.Deserialize<List<T>>(json) ?? new List<T>();
+    }
+
+    private void CacheResult<T>(string key, List<T> data, int minutes)
+    {
+        _cache.Set(key, data, new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(minutes))
+            .SetSize(1));
+        _logger.LogInformation("Cached {Count} records, key={Key}", data.Count, key);
+    }
+
+    /// <summary>西元年轉民國年 (YYY.MM.DD)</summary>
     private static string ToRocDate(DateTime date)
     {
-        int rocYear = date.Year - 1911;
-        return $"{rocYear}.{date.Month:D2}.{date.Day:D2}";
+        if (date.Year < 1912)
+            throw new ArgumentException($"Date {date:yyyy-MM-dd} is before ROC era (1912)", nameof(date));
+        return $"{date.Year - 1911}.{date.Month:D2}.{date.Day:D2}";
     }
 }
