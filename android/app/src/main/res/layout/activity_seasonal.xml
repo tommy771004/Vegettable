@@ -1,109 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/background">
 
     <LinearLayout
+        android:id="@+id/layout_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingTop="40dp"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:paddingBottom="8dp">
+        android:orientation="vertical"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <ImageButton
-            android:id="@+id/btn_back"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_revert"
-            android:contentDescription="返回" />
-
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="季節行事曆"
-            android:textSize="26sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-medium"
-            android:textColor="@color/primary_dark"
-            android:layout_marginStart="8dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="40dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp">
+
+            <ImageButton
+                android:id="@+id/btn_back"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_revert"
+                android:contentDescription="返回" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="季節行事曆"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/primary_dark"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_category"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:singleSelection="true"
+                app:selectionRequired="true" />
+        </HorizontalScrollView>
     </LinearLayout>
-
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:paddingBottom="8dp">
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group_category"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:singleSelection="true"
-            app:selectionRequired="true" />
-    </HorizontalScrollView>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        app:layout_constraintTop_toBottomOf="@id/layout_header"
+        app:layout_constraintBottom_toBottomOf="parent">
 
-        <FrameLayout
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_seasonal"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="80dp"
+            android:clipToPadding="false" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_seasonal"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:paddingBottom="24dp"
-                android:clipToPadding="false" />
-
-            <ProgressBar
-                android:id="@+id/progress_bar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:visibility="gone" />
-
-            <LinearLayout
-                android:id="@+id/layout_error"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:padding="24dp"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/tv_error"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="14sp"
-                    android:textColor="@color/text_secondary"
-                    android:gravity="center" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_retry"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="重試"
-                    android:layout_marginTop="12dp"
-                    app:cornerRadius="20dp" />
-            </LinearLayout>
-        </FrameLayout>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-</LinearLayout>
+
+    <!-- Liquid Glass 搜尋/卡片背景 (可見或隱藏) -->
+    <View
+        android:id="@+id/seasonal_card"
+        android:layout_width="0dp"
+        android:layout_height="100dp"
+        android:layout_margin="14dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Liquid Glass 浮動 Tab Bar (模擬) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/bottom_tab_layout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="60dp"
+        android:layout_marginEnd="60dp"
+        android:layout_marginBottom="24dp"
+        app:cardBackgroundColor="@color/tab_bar_bg"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="8dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/glass_stroke"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:gravity="center"
+            android:text="探索更多作物"
+            android:textColor="@color/primary"
+            android:textStyle="bold" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

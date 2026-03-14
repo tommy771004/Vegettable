@@ -1,0 +1,12 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 半透明淺綠底色 -->
+    <solid android:color="@color/glass_green_alpha_20" />
+
+    <!-- 圓潤化設計 (Liquid Glass 核心) -->
+    <corners android:radius="24dp" />
+
+    <!-- 模擬玻璃邊緣的微光 (Stroke) -->
+    <stroke
+        android:width="1dp"
+        android:color="@color/glass_highlight" />
+</shape>

@@ -26,29 +26,29 @@
     <!-- 單位 -->
     <string name="unit_kg">元/公斤</string>
     <string name="unit_catty">元/台斤</string>
-    <string name="unit_kg_short">公斤</string>
-    <string name="unit_catty_short">台斤</string>
+    <string name="unit_kg_short" translatable="false">公斤</string>
+    <string name="unit_catty_short" translatable="false">台斤</string>
 
     <!-- 詳情頁 -->
-    <string name="daily_chart_title">近 7 日價格走勢</string>
-    <string name="monthly_chart_title">近 3 年月均價</string>
-    <string name="historical_avg">歷史均價</string>
-    <string name="volume">交易量</string>
-    <string name="prediction_title">AI 價格預測</string>
-    <string name="recipes_title">推薦食譜</string>
+    <string name="daily_chart_title" translatable="false">近 7 日價格走勢</string>
+    <string name="monthly_chart_title" translatable="false">近 3 年月均價</string>
+    <string name="historical_avg" translatable="false">歷史均價</string>
+    <string name="volume" translatable="false">交易量</string>
+    <string name="prediction_title" translatable="false">AI 價格預測</string>
+    <string name="recipes_title" translatable="false">推薦食譜</string>
 
     <!-- 設定頁 -->
-    <string name="settings_price_display">價格顯示</string>
-    <string name="settings_default_market">預設市場</string>
-    <string name="settings_appearance">外觀</string>
-    <string name="settings_language">語言</string>
-    <string name="settings_quick_links">快捷功能</string>
+    <string name="settings_price_display" translatable="false">價格顯示</string>
+    <string name="settings_default_market" translatable="false">預設市場</string>
+    <string name="settings_appearance" translatable="false">外觀</string>
+    <string name="settings_language" translatable="false">語言</string>
+    <string name="settings_quick_links" translatable="false">快捷功能</string>
     <string name="settings_seasonal_calendar">季節行事曆</string>
     <string name="settings_price_comparator">市場比價</string>
     <string name="settings_nearby_markets">附近市場</string>
-    <string name="settings_about">關於</string>
-    <string name="settings_data_source">資料來源：行政院農業委員會</string>
-    <string name="settings_disclaimer">價格資料僅供參考，實際交易價格以市場為準</string>
+    <string name="settings_about" translatable="false">關於</string>
+    <string name="settings_data_source" translatable="false">資料來源：行政院農業委員會</string>
+    <string name="settings_disclaimer" translatable="false">價格資料僅供參考，實際交易價格以市場為準</string>
 
     <!-- 通用 -->
     <string name="loading">載入中…</string>
@@ -57,27 +57,28 @@
     <string name="no_data">暫無資料</string>
     <string name="search_hint">搜尋蔬果名稱…</string>
     <string name="favorites_empty">尚未收藏任何產品\n點擊 ♡ 可加入收藏</string>
-    <string name="share_text">%1$s 目前批發均價 %2$s 元/公斤，屬於「%3$s」等級 — 菜價查詢 App</string>
+    <string name="share_text" translatable="false">%1$s 目前批發均價 %2$s 元/公斤，屬於「%3$s」等級 — 菜價查詢 App</string>
     <string name="market_avg">全台平均</string>
 
     <!-- 季節 -->
     <string name="seasonal_title">季節行事曆</string>
-    <string name="in_season">當季</string>
-    <string name="off_season">非當季</string>
+    <string name="in_season" translatable="false">當季</string>
+    <string name="off_season" translatable="false">非當季</string>
 
     <!-- 比價 -->
     <string name="compare_title">市場比價</string>
 
+
     <!-- 地圖 -->
     <string name="map_title">批發市場位置</string>
-    <string name="region_north">北部</string>
-    <string name="region_central">中部</string>
-    <string name="region_south">南部</string>
-    <string name="region_east">東部</string>
+    <string name="region_north" translatable="false">北部</string>
+    <string name="region_central" translatable="false">中部</string>
+    <string name="region_south" translatable="false">南部</string>
+    <string name="region_east" translatable="false">東部</string>
 
     <!-- 通知 -->
-    <string name="alert_title">價格警示</string>
-    <string name="alert_add">新增警示</string>
-    <string name="alert_condition_below">低於</string>
-    <string name="alert_condition_above">高於</string>
+    <string name="alert_title" translatable="false">價格警示</string>
+    <string name="alert_add" translatable="false">新增警示</string>
+    <string name="alert_condition_below" translatable="false">低於</string>
+    <string name="alert_condition_above" translatable="false">高於</string>
 </resources>

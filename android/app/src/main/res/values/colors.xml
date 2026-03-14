@@ -18,8 +18,8 @@
     <!-- 玻璃效果 -->
     <color name="divider">#0A000000</color>
     <color name="glass_bg">#73FFFFFF</color>
-    <color name="glass_stroke">#99FFFFFF</color>
-    <color name="glass_highlight">#80FFFFFF</color>
+    <color name="glass_highlight">#CCFFFFFF</color> <!-- 80% 透明白，用於邊緣 -->
+    <color name="glass_stroke">#26000000</color> <!-- 極細邊框陰影 -->
 
     <!-- 價格等級 -->
     <color name="price_very_cheap">#E53935</color>
@@ -43,4 +43,15 @@
     <!-- 浮動 Tab Bar -->
     <color name="tab_bar_bg">#D9FFFFFF</color>
     <color name="tab_bar_indicator">#1A1B8A50</color>
+
+    <!-- 核心淺綠色 (薄荷綠) -->
+    <color name="liquid_glass_green_base">#E8F5E9</color> <!-- 底部背景 -->
+    <color name="liquid_glass_green_tint">#A5D6A7</color> <!-- 主色調 -->
+
+    <!-- Liquid Glass 材質顏色 (半透明) -->
+    <color name="glass_white_alpha_30">#4DFFFFFF</color> <!-- 30% 透明白 -->
+    <color name="glass_green_alpha_20">#33C8E6C9</color> <!-- 20% 透明淺綠 -->
+
+    <!-- 高亮與陰影 (折射感) -->
+
 </resources>

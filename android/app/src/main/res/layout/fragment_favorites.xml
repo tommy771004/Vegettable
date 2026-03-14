@@ -33,35 +33,29 @@
             android:layout_marginTop="4dp" />
     </LinearLayout>
 
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipe_refresh"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <FrameLayout
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_favorites"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="80dp"
+            android:clipToPadding="false" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_favorites"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:paddingBottom="80dp"
-                android:clipToPadding="false" />
-
-            <TextView
-                android:id="@+id/tv_empty"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="@string/favorites_empty"
-                android:textSize="15sp"
-                android:textColor="@color/text_tertiary"
-                android:gravity="center"
-                android:visibility="gone" />
-        </FrameLayout>
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+        <TextView
+            android:id="@+id/tv_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/favorites_empty"
+            android:textSize="15sp"
+            android:textColor="@color/text_tertiary"
+            android:gravity="center"
+            android:visibility="gone" />
+    </FrameLayout>
 </LinearLayout>
