@@ -1,0 +1,128 @@
+using Microsoft.EntityFrameworkCore;
+using VegettableApi.Data;
+using VegettableApi.Data.Entities;
+
+namespace VegettableApi.Services;
+
+/// <summary>
+/// 背景排程服務 — 定時從農業部抓取資料寫入 SQLite，
+/// 同時每 30 分鐘檢查價格警示
+/// </summary>
+public class DataFetchBackgroundService : BackgroundService
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<DataFetchBackgroundService> _logger;
+
+    /// <summary>資料同步間隔 (30 分鐘)</summary>
+    private static readonly TimeSpan FetchInterval = TimeSpan.FromMinutes(30);
+
+    public DataFetchBackgroundService(IServiceScopeFactory scopeFactory, ILogger<DataFetchBackgroundService> logger)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("DataFetchBackgroundService started");
+
+        // 等待應用程式啟動完成
+        await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+
+        int consecutiveFailures = 0;
+        const int maxConsecutiveFailures = 3;
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await FetchAndCacheDataAsync(stoppingToken);
+                await CheckPriceAlertsAsync(stoppingToken);
+                consecutiveFailures = 0; // 成功後重置
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                consecutiveFailures++;
+                _logger.LogError(ex, "Background data fetch failed (consecutive failures: {Count})", consecutiveFailures);
+
+                if (consecutiveFailures >= maxConsecutiveFailures)
+                {
+                    // 指數退避：2^n * 基本間隔，最長 30 分鐘
+                    var backoffMinutes = Math.Min(Math.Pow(2, consecutiveFailures - maxConsecutiveFailures) * 5, 30);
+                    var backoff = TimeSpan.FromMinutes(backoffMinutes);
+                    _logger.LogWarning("Circuit breaker: backing off for {Minutes} minutes due to repeated failures", backoffMinutes);
+                    await Task.Delay(backoff, stoppingToken);
+                    continue;
+                }
+            }
+
+            await Task.Delay(FetchInterval, stoppingToken);
+        }
+    }
+
+    private async Task FetchAndCacheDataAsync(CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var moaApi = scope.ServiceProvider.GetRequiredService<IMoaApiService>();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var endDate = DateTime.Today;
+        var startDate = endDate.AddDays(-7);
+
+        _logger.LogInformation("Fetching farm data for cache: {Start} to {End}", startDate, endDate);
+
+        var data = await moaApi.FetchFarmTransDataAsync(startDate, endDate);
+
+        if (data.Count == 0) return;
+
+        // 移除舊的快取資料 (7天前) — 直接在資料庫端刪除，避免將大量資料載入記憶體
+        var cutoff = DateTime.UtcNow.AddDays(-7);
+        var deletedCount = await db.CachedDailyPrices
+            .Where(c => c.FetchedAt < cutoff)
+            .ExecuteDeleteAsync(ct);
+
+        if (deletedCount > 0)
+        {
+            _logger.LogInformation("Removed {Count} stale cache entries", deletedCount);
+        }
+
+        // 批次查詢已存在的記錄鍵值，避免 N+1 問題
+        var existingKeysList = await db.CachedDailyPrices
+            .Select(c => c.CropName + "|" + c.MarketName + "|" + c.TransDate)
+            .ToListAsync(ct);
+        var existingKeys = new HashSet<string>(existingKeysList);
+
+        var newEntries = data
+            .Where(item => !existingKeys.Contains(item.CropName + "|" + item.MarketName + "|" + item.TransDate))
+            .Select(item => new CachedDailyPrice
+            {
+                CropCode = item.CropCode,
+                CropName = item.CropName,
+                MarketCode = item.MarketCode,
+                MarketName = item.MarketName,
+                TransDate = item.TransDate,
+                AvgPrice = item.AvgPrice,
+                UpperPrice = item.UpperPrice,
+                MiddlePrice = item.MiddlePrice,
+                LowerPrice = item.LowerPrice,
+                Volume = item.Volume,
+            })
+            .ToList();
+
+        if (newEntries.Count > 0)
+        {
+            await db.CachedDailyPrices.AddRangeAsync(newEntries, ct);
+            await db.SaveChangesAsync(ct);
+            _logger.LogInformation("Cached {Count} new daily price records", newEntries.Count);
+        }
+    }
+
+    private async Task CheckPriceAlertsAsync(CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var alertService = scope.ServiceProvider.GetRequiredService<IAlertService>();
+
+        _logger.LogDebug("Checking price alerts...");
+        await alertService.CheckAndTriggerAlertsAsync();
+    }
+}
