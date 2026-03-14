@@ -120,7 +120,14 @@ class HomeFragment : Fragment(), ProductAdapter.OnItemClickListener {
                         // 快取最新的產品列表
                         prefs!!.cacheProducts(Gson().toJson(products))
                     } else {
-                        handleLoadError("無法取得最新資料")
+                        val errorMsg = when (response.code()) {
+                            400 -> "請求格式錯誤"
+                            404 -> "查無資料"
+                            429 -> "請求過於頻繁，請稍後再試"
+                            in 500..599 -> "伺服器發生錯誤，請稍後再試"
+                            else -> "無法取得最新資料"
+                        }
+                        handleLoadError(errorMsg)
                     }
                 }
 
@@ -144,7 +151,7 @@ class HomeFragment : Fragment(), ProductAdapter.OnItemClickListener {
             try {
                 val products = Gson().fromJson<MutableList<ProductSummary>>(
                     cached,
-                    object : TypeToken<MutableList<ProductSummary?>?>() {}.getType()
+                    object : TypeToken<MutableList<ProductSummary>>() {}.getType()
                 )
                 if (products != null && !products.isEmpty()) {
                     adapter!!.setItems(products)

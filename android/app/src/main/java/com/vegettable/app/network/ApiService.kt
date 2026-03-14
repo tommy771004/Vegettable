@@ -1,6 +1,7 @@
 package com.vegettable.app.network
 
 import com.vegettable.app.model.ApiResponse
+import com.vegettable.app.model.Category
 import com.vegettable.app.model.CreateAlertRequest
 import com.vegettable.app.model.Market
 import com.vegettable.app.model.MarketPrice
@@ -92,6 +93,10 @@ interface ApiService {
     fun getRecipes(
         @Path("cropName") cropName: String?
     ): Call<ApiResponse<MutableList<Recipe?>?>?>?
+
+    // ─── Categories ──────────────────────────────────────────
+    @GET("/api/categories")
+    fun getCategories(): Call<ApiResponse<MutableList<Category?>?>?>?
 
     // ─── Health ──────────────────────────────────────────────
     @GET("/health")

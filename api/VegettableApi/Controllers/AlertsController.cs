@@ -52,6 +52,7 @@ public class AlertsController : ControllerBase
 
     /// <summary>
     /// 刪除價格警示
+    /// </summary>
     /// <summary>
     /// Deletes the price alert with the specified id for the provided device token.
     /// </summary>
@@ -77,6 +78,7 @@ public class AlertsController : ControllerBase
 
     /// <summary>
     /// 切換警示啟用/停用
+    /// </summary>
     /// <summary>
     /// Toggles the enabled state of the price alert with the given id for the specified device.
     /// </summary>

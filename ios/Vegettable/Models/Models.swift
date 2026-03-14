@@ -132,6 +132,24 @@ struct Recipe: Codable, Identifiable {
     var id: String { name }
 }
 
+// MARK: - 動態分類（來自 API）
+struct CategoryInfo: Codable, Identifiable {
+    let key: String
+    let label: String
+    let icon: String
+    let subCategories: [SubCategoryInfo]?
+
+    var id: String { key }
+}
+
+struct SubCategoryInfo: Codable, Identifiable {
+    let key: String
+    let label: String
+    let icon: String
+
+    var id: String { key }
+}
+
 // MARK: - 分類
 enum CropCategory: String, CaseIterable {
     case all = "all"

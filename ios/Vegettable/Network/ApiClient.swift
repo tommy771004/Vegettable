@@ -14,6 +14,7 @@ enum ApiEndpoints {
     static let alerts = "/api/alerts"
     static let prediction = "/api/prediction"
     static let seasonal = "/api/prediction/seasonal"
+    static let categories = "/api/categories"
     static let health = "/health"
 }
 
@@ -48,9 +49,14 @@ class ApiClient: ObservableObject {
         var urlString = ApiEndpoints.baseURL + path
         if let params = params, !params.isEmpty {
             let queryItems = params.map { URLQueryItem(name: $0.key, value: $0.value) }
-            var components = URLComponents(string: urlString)!
+            guard var components = URLComponents(string: urlString) else {
+                throw ApiError.invalidURL
+            }
             components.queryItems = queryItems
-            urlString = components.url!.absoluteString
+            guard let resolvedURL = components.url else {
+                throw ApiError.invalidURL
+            }
+            urlString = resolvedURL.absoluteString
         }
 
         guard let url = URL(string: urlString) else {
@@ -379,6 +385,11 @@ class ApiClient: ObservableObject {
         guard !cropName.isEmpty else { throw ApiError.invalidInput("作物名稱不能為空") }
         let encoded = cropName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? cropName
         return try await get(path: "\(ApiEndpoints.prediction)/\(encoded)/recipes")
+    }
+
+    // MARK: - Categories API
+    func fetchCategories() async throws -> [CategoryInfo] {
+        return try await get(path: ApiEndpoints.categories)
     }
 
     // MARK: - Health
