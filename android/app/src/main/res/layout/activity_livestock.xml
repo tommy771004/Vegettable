@@ -7,54 +7,58 @@
     android:orientation="vertical"
     android:background="@color/background">
 
-    <!-- 頂部標題 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingStart="16dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
         android:paddingEnd="16dp"
         android:paddingTop="48dp"
         android:paddingBottom="8dp">
 
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_revert"
+            android:contentDescription="返回" />
+
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textSize="30sp"
+            android:layout_weight="1"
+            android:text="畜產品行情"
+            android:textSize="24sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-medium"
-            android:textColor="@color/primary_dark" />
-
-        <TextView
-            android:id="@+id/tv_subtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="即時蔬果行情"
-            android:textSize="14sp"
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="4dp" />
+            android:textColor="@color/primary_dark"
+            android:layout_marginStart="4dp" />
     </LinearLayout>
 
-    <!-- Liquid Glass 分類選擇 -->
-    <HorizontalScrollView
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="8dp">
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="14dp"
+        android:layout_marginBottom="8dp"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+        app:startIconDrawable="@android:drawable/ic_menu_search"
+        app:boxCornerRadiusTopStart="24dp"
+        app:boxCornerRadiusTopEnd="24dp"
+        app:boxCornerRadiusBottomStart="24dp"
+        app:boxCornerRadiusBottomEnd="24dp">
 
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group_category"
-            android:layout_width="wrap_content"
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_search"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:singleSelection="true"
-            app:selectionRequired="true" />
-    </HorizontalScrollView>
+            android:hint="搜尋畜產品名稱"
+            android:imeOptions="actionSearch"
+            android:inputType="text" />
+    </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- 產品列表 -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
@@ -66,16 +70,16 @@
             android:layout_height="match_parent">
 
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_products"
+                android:id="@+id/rv_livestock"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
                 android:paddingTop="4dp"
-                android:paddingBottom="80dp"
-                android:clipToPadding="false" />
+                android:paddingBottom="24dp"
+                android:clipToPadding="false"
+                android:visibility="gone" />
 
-            <!-- Skeleton Loading -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rv_skeleton"
                 android:layout_width="match_parent"
@@ -83,11 +87,10 @@
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
                 android:paddingTop="4dp"
-                android:paddingBottom="80dp"
+                android:paddingBottom="24dp"
                 android:clipToPadding="false"
                 android:visibility="gone" />
 
-            <!-- Error / Empty -->
             <LinearLayout
                 android:id="@+id/layout_error"
                 android:layout_width="wrap_content"
@@ -101,7 +104,7 @@
                     android:id="@+id/tv_error"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/error_load_failed"
+                    android:text="載入失敗"
                     android:textSize="15sp"
                     android:textColor="@color/text_secondary" />
 
@@ -109,7 +112,7 @@
                     android:id="@+id/btn_retry"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/retry"
+                    android:text="重試"
                     android:layout_marginTop="12dp"
                     app:cornerRadius="20dp"
                     style="@style/Widget.Material3.Button.TonalButton" />

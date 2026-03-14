@@ -53,9 +53,7 @@ struct HomeView: View {
 
                     // 產品列表
                     if isLoading && products.isEmpty {
-                        Spacer()
-                        ProgressView("載入中…")
-                        Spacer()
+                        SkeletonListView(count: 8)
                     } else if let error = errorMessage, products.isEmpty {
                         Spacer()
                         VStack(spacing: 12) {
@@ -103,7 +101,7 @@ struct HomeView: View {
             .navigationTitle("菜價查詢")
             .navigationBarTitleDisplayMode(.large)
         }
-        .onAppear { loadProducts() }
+        .task { loadProducts() }
     }
 
     private func updateFilteredProducts() {

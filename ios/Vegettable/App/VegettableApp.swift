@@ -10,6 +10,7 @@ struct VegettableApp: App {
             MainTabView()
                 .environmentObject(settings)
                 .environmentObject(networkMonitor)
+                .preferredColorScheme(settings.preferredColorScheme)
         }
     }
 }
