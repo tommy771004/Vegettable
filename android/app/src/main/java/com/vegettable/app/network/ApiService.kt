@@ -4,6 +4,8 @@ import com.vegettable.app.model.ApiResponse
 import com.vegettable.app.model.AquaticPrice
 import com.vegettable.app.model.Category
 import com.vegettable.app.model.CreateAlertRequest
+import com.vegettable.app.model.FeedbackRequest
+import com.vegettable.app.model.FeedbackResult
 import com.vegettable.app.model.LivestockPrice
 import com.vegettable.app.model.Market
 import com.vegettable.app.model.OrganicPrice
@@ -126,6 +128,12 @@ interface ApiService {
         @Query("cropName") cropName: String?,
         @Query("certType") certType: String?
     ): Call<ApiResponse<MutableList<OrganicPrice?>?>?>?
+
+    // ─── Feedback ────────────────────────────────────────────
+    @POST("/api/feedback")
+    fun submitFeedback(
+        @Body request: FeedbackRequest?
+    ): Call<ApiResponse<FeedbackResult?>?>?
 
     // ─── Health ──────────────────────────────────────────────
     @GET("/health")

@@ -15,6 +15,14 @@ struct FeedbackView: View {
         case bug = "錯誤報告"
         case suggestion = "功能建議"
         case other = "其他"
+
+        var apiValue: String {
+            switch self {
+            case .bug: return "bug"
+            case .suggestion: return "suggestion"
+            case .other: return "other"
+            }
+        }
     }
 
     var isFormValid: Bool {
@@ -144,30 +152,31 @@ struct FeedbackView: View {
 
     private func submitFeedback() {
         let trimmedText = feedbackText.trimmingCharacters(in: .whitespaces)
-        
-        // 表單驗證
+
         guard trimmedText.count >= 10 else {
             errorText = "反饋內容至少需要10個字"
             showErrorMessage = true
             logger.warning("反饋提交失敗: 內容過短")
             return
         }
-        
+
         guard trimmedText.count <= 2000 else {
             errorText = "反饋內容不能超過2000個字"
             showErrorMessage = true
             logger.warning("反饋提交失敗: 內容過長")
             return
         }
-        
+
         isSubmitting = true
+        showErrorMessage = false
         logger.debug("提交反饋: 類型=\(feedbackType.rawValue), 長度=\(trimmedText.count)")
-        
+
         Task {
             do {
-                // 模擬API調用，實際應該調用後端服務
-                try await Task.sleep(nanoseconds: 1_000_000_000) // 1秒模擬延遲
-                
+                _ = try await ApiClient.shared.submitFeedback(
+                    type: feedbackType.apiValue,
+                    content: trimmedText
+                )
                 await MainActor.run {
                     isSubmitting = false
                     showSuccessMessage = true

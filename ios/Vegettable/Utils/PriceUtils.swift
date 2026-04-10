@@ -44,6 +44,37 @@ struct PriceUtils {
         }
     }
 
+    /// 價格等級輔助圖示（輔助顏色以外的視覺提示，符合 WCAG 2.1）
+    static func priceLevelIcon(_ level: String) -> String {
+        switch level {
+        case "very-cheap": return "↓↓"
+        case "cheap":      return "↓"
+        case "normal":     return "→"
+        case "expensive":  return "↑"
+        default:           return ""
+        }
+    }
+
+    /// 趨勢的無障礙描述（螢幕閱讀器用）
+    static func trendAccessibilityLabel(_ trend: String) -> String {
+        switch trend {
+        case "up":   return "上漲"
+        case "down": return "下跌"
+        default:     return "持平"
+        }
+    }
+
+    /// 價格等級的完整無障礙描述
+    static func priceLevelAccessibilityLabel(_ level: String) -> String {
+        switch level {
+        case "very-cheap": return "價格當令便宜"
+        case "cheap":      return "價格相對便宜"
+        case "normal":     return "價格略偏貴"
+        case "expensive":  return "價格相對偏貴"
+        default:           return "價格未知"
+        }
+    }
+
     static func trendArrow(_ trend: String) -> String {
         switch trend {
         case "up":   return "↑"

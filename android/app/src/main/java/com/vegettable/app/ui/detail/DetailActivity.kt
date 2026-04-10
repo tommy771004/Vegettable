@@ -7,14 +7,20 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.vegettable.app.R
 import com.vegettable.app.databinding.ActivityDetailBinding
 import com.vegettable.app.model.ApiResponse
+import com.vegettable.app.model.CreateAlertRequest
 import com.vegettable.app.model.DailyPrice
 import com.vegettable.app.model.MonthlyPrice
+import com.vegettable.app.model.PriceAlert
 import com.vegettable.app.model.PricePrediction
 import com.vegettable.app.model.ProductDetail
 import com.vegettable.app.model.Recipe
@@ -31,6 +37,7 @@ class DetailActivity : AppCompatActivity() {
     private var cropName: String? = null
     private var cropCode: String? = null
     private var prefs: PrefsManager? = null
+    private var currentAvgPrice: Double = 0.0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,14 +73,17 @@ class DetailActivity : AppCompatActivity() {
         }
 
         binding!!.btnShare.setOnClickListener {
-            val shareText = String.format(
-                "【%s】目前的市場價格約為 %s 元，推薦你使用「蔬果價目表」App 查詢！",
-                cropName, binding!!.tvPrice.text
-            )
+            val priceText = binding!!.tvPrice.text
+            val unit = if (prefs!!.priceUnit == "catty") "元/台斤" else "元/公斤"
+            val shareText = "【$cropName】目前批發均價 $priceText $unit — 蔬果行情 App"
             val intent = Intent(Intent.ACTION_SEND)
             intent.type = "text/plain"
             intent.putExtra(Intent.EXTRA_TEXT, shareText)
-            startActivity(Intent.createChooser(intent, "分享"))
+            startActivity(Intent.createChooser(intent, "分享價格資訊"))
+        }
+
+        binding!!.btnAlert.setOnClickListener {
+            showAlertDialog()
         }
     }
 
@@ -120,6 +130,7 @@ class DetailActivity : AppCompatActivity() {
             binding!!.tvAliases.visibility = View.GONE
         }
 
+        currentAvgPrice = detail.avgPrice
         var price = detail.avgPrice
         val unit = prefs!!.priceUnit
         if ("catty" == unit) {
@@ -308,6 +319,114 @@ class DetailActivity : AppCompatActivity() {
             item.addView(tvDesc)
             binding!!.layoutRecipes.addView(item)
         }
+    }
+
+    // ─── 價格警示 Dialog ─────────────────────────────────────
+
+    private fun showAlertDialog() {
+        val dialogLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = dpToPx(20)
+            setPadding(pad, pad, pad, pad)
+        }
+
+        // 目前價格提示
+        val tvCurrent = TextView(this).apply {
+            text = "目前均價：${PriceUtils.formatPrice(currentAvgPrice)} 元/公斤"
+            textSize = 13f
+            setTextColor(Color.parseColor("#536471"))
+        }
+        dialogLayout.addView(tvCurrent)
+
+        // 條件說明
+        val tvCondLabel = TextView(this).apply {
+            text = "通知條件"
+            textSize = 14f
+            setTextColor(Color.parseColor("#0F1419"))
+            setPadding(0, dpToPx(12), 0, dpToPx(4))
+        }
+        dialogLayout.addView(tvCondLabel)
+
+        // RadioGroup 選擇條件
+        val radioGroup = RadioGroup(this).apply {
+            orientation = RadioGroup.HORIZONTAL
+        }
+        val rbBelow = android.widget.RadioButton(this).apply {
+            text = "低於目標"
+            id = View.generateViewId()
+            isChecked = true
+        }
+        val rbAbove = android.widget.RadioButton(this).apply {
+            text = "高於目標"
+            id = View.generateViewId()
+        }
+        radioGroup.addView(rbBelow)
+        radioGroup.addView(rbAbove)
+        dialogLayout.addView(radioGroup)
+
+        // 目標價格輸入
+        val tvPriceLabel = TextView(this).apply {
+            text = "目標價格（元/公斤）"
+            textSize = 14f
+            setTextColor(Color.parseColor("#0F1419"))
+            setPadding(0, dpToPx(12), 0, dpToPx(4))
+        }
+        dialogLayout.addView(tvPriceLabel)
+
+        val etPrice = EditText(this).apply {
+            hint = "例: 30.0"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        dialogLayout.addView(etPrice)
+
+        AlertDialog.Builder(this)
+            .setTitle("設定價格警示 — $cropName")
+            .setView(dialogLayout)
+            .setPositiveButton("建立警示") { _, _ ->
+                val priceText = etPrice.text.toString().trim()
+                val targetPrice = priceText.toDoubleOrNull()
+                if (targetPrice == null || targetPrice <= 0) {
+                    Toast.makeText(this, "請輸入有效的目標價格", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val condition = if (radioGroup.checkedRadioButtonId == rbBelow.id) "below" else "above"
+                createPriceAlert(targetPrice, condition)
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun createPriceAlert(targetPrice: Double, condition: String) {
+        val deviceToken = prefs!!.getDeviceToken()
+        val request = CreateAlertRequest(
+            deviceToken = deviceToken,
+            cropName = cropName ?: return,
+            targetPrice = targetPrice,
+            condition = condition
+        )
+
+        instance!!.api.createAlert(request)
+            ?.enqueue(object : Callback<ApiResponse<PriceAlert?>?> {
+                override fun onResponse(
+                    call: Call<ApiResponse<PriceAlert?>?>,
+                    response: Response<ApiResponse<PriceAlert?>?>
+                ) {
+                    if (response.isSuccessful && response.body()?.isSuccess == true) {
+                        val condText = if (condition == "below") "低於" else "高於"
+                        Toast.makeText(
+                            this@DetailActivity,
+                            "警示已建立！價格${condText} ${PriceUtils.formatPrice(targetPrice)} 元時將通知您",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(this@DetailActivity, "建立警示失敗，請稍後重試", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onFailure(call: Call<ApiResponse<PriceAlert?>?>, t: Throwable) {
+                    Toast.makeText(this@DetailActivity, "網路連線異常，請稍後重試", Toast.LENGTH_SHORT).show()
+                }
+            })
     }
 
     private fun dpToPx(dp: Int): Int {

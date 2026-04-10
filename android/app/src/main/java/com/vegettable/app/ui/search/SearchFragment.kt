@@ -9,10 +9,13 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textfield.TextInputEditText
 import com.vegettable.app.R
 import com.vegettable.app.model.ApiResponse
@@ -31,6 +34,9 @@ class SearchFragment : Fragment(), ProductAdapter.OnItemClickListener {
     private var tvResultCount: TextView? = null
     private var tvSearchError: TextView? = null
     private var tvEmptyResults: TextView? = null
+    private var layoutHistory: LinearLayout? = null
+    private var chipGroupHistory: ChipGroup? = null
+    private var tvClearHistory: TextView? = null
     private var adapter: ProductAdapter? = null
     private var prefs: PrefsManager? = null
     private val handler = Handler(Looper.getMainLooper())
@@ -54,34 +60,76 @@ class SearchFragment : Fragment(), ProductAdapter.OnItemClickListener {
         tvResultCount = view.findViewById(R.id.tv_result_count)
         tvSearchError = view.findViewById(R.id.tv_search_error)
         tvEmptyResults = view.findViewById(R.id.tv_empty)
+        layoutHistory = view.findViewById(R.id.layout_history)
+        chipGroupHistory = view.findViewById(R.id.chip_group_history)
+        tvClearHistory = view.findViewById(R.id.tv_clear_history)
 
         rvResults?.layoutManager = LinearLayoutManager(requireContext())
         adapter = ProductAdapter(this, prefs?.favorites ?: mutableSetOf())
         adapter?.setPriceUnit(prefs?.priceUnit)
         rvResults?.adapter = adapter
 
+        tvClearHistory?.setOnClickListener {
+            prefs?.clearSearchHistory()
+            renderHistoryChips()
+        }
+
         etSearch?.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                // 打字時隱藏歷史
+                layoutHistory?.visibility = View.GONE
+            }
             override fun afterTextChanged(s: Editable) {
                 searchRunnable?.let { handler.removeCallbacks(it) }
-                searchRunnable = Runnable { performSearch(s.toString().trim()) }
+                val keyword = s.toString().trim()
+                if (keyword.isEmpty()) {
+                    adapter?.setItems(mutableListOf())
+                    tvResultCount?.visibility = View.GONE
+                    tvSearchError?.visibility = View.GONE
+                    tvEmptyResults?.visibility = View.GONE
+                    renderHistoryChips()
+                    return
+                }
+                searchRunnable = Runnable { performSearch(keyword) }
                 handler.postDelayed(searchRunnable!!, 300)
             }
         })
+
+        renderHistoryChips()
     }
 
-    private fun performSearch(keyword: String) {
-        if (keyword.isEmpty()) {
-            adapter?.setItems(mutableListOf())
-            tvResultCount?.visibility = View.GONE
-            tvSearchError?.visibility = View.GONE
-            tvEmptyResults?.visibility = View.GONE
+    /** 渲染搜尋歷史 Chip，無歷史則隱藏整個區塊 */
+    private fun renderHistoryChips() {
+        val history = prefs?.getSearchHistory() ?: emptyList()
+        val chipGroup = chipGroupHistory ?: return
+
+        chipGroup.removeAllViews()
+        if (history.isEmpty()) {
+            layoutHistory?.visibility = View.GONE
             return
         }
 
+        layoutHistory?.visibility = View.VISIBLE
+        for (kw in history) {
+            val chip = Chip(requireContext())
+            chip.text = kw
+            chip.isClickable = true
+            chip.setOnClickListener {
+                etSearch?.setText(kw)
+                etSearch?.setSelection(kw.length)
+                performSearch(kw)
+            }
+            chipGroup.addView(chip)
+        }
+    }
+
+    private fun performSearch(keyword: String) {
+        if (keyword.isEmpty()) return
+
         tvSearchError?.visibility = View.GONE
         tvEmptyResults?.visibility = View.GONE
+        layoutHistory?.visibility = View.GONE
 
         instance?.api?.searchProducts(keyword)?.enqueue(object : Callback<ApiResponse<MutableList<ProductSummary?>?>?> {
             override fun onResponse(
@@ -92,8 +140,12 @@ class SearchFragment : Fragment(), ProductAdapter.OnItemClickListener {
 
                 if (response.isSuccessful && response.body()?.isSuccess == true && response.body()?.data != null) {
                     val results = response.body()?.data?.filterNotNull()?.toMutableList() ?: mutableListOf()
-
                     adapter?.setItems(results)
+
+                    // 成功搜尋後儲存歷史
+                    if (results.isNotEmpty()) {
+                        prefs?.addSearchHistory(keyword)
+                    }
 
                     if (results.isEmpty()) {
                         tvEmptyResults?.visibility = View.VISIBLE
