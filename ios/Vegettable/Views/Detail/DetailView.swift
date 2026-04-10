@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 struct DetailView: View {
     let cropName: String
@@ -11,6 +12,7 @@ struct DetailView: View {
     @State private var recipes: [Recipe] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var showAlertSheet = false
     private let logger = LoggerManager.shared
 
     var body: some View {
@@ -82,9 +84,36 @@ struct DetailView: View {
                     Image(systemName: settings.isFavorite(cropCode) ? "heart.fill" : "heart")
                         .foregroundColor(settings.isFavorite(cropCode) ? .red : .gray)
                 }
+                .accessibilityLabel(settings.isFavorite(cropCode) ? "取消收藏" : "加入收藏")
 
-                ShareLink(item: "\(cropName) — 菜價查詢 App") {
-                    Image(systemName: "square.and.arrow.up")
+                if let d = detail {
+                    Button {
+                        showAlertSheet = true
+                    } label: {
+                        Image(systemName: "bell.badge")
+                            .foregroundColor(AppColors.primary)
+                    }
+                    .accessibilityLabel("設定價格警示")
+                    .sheet(isPresented: $showAlertSheet) {
+                        PriceAlertSheet(
+                            cropName: cropName,
+                            currentPrice: d.avgPrice,
+                            isPresented: $showAlertSheet
+                        )
+                        .environmentObject(settings)
+                    }
+                }
+
+                if let d = detail {
+                    let shareText = "\(cropName) 目前均價 \(PriceUtils.formatPrice(d.avgPrice)) 元/公斤（\(d.trend == "up" ? "↑" : d.trend == "down" ? "↓" : "→") \(d.priceLevel)）— 蔬果行情 App"
+                    ShareLink(item: shareText) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("分享價格資訊")
+                } else {
+                    ShareLink(item: "\(cropName) — 蔬果行情 App") {
+                        Image(systemName: "square.and.arrow.up")
+                    }
                 }
             }
         }
@@ -143,7 +172,7 @@ struct DetailView: View {
         }
     }
 
-    // MARK: - 圖表卡片
+    // MARK: - 圖表卡片（SwiftCharts 互動折線圖）
     private func chartCard(title: String, prices: [(String, Double)], color: Color) -> some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 8) {
@@ -155,28 +184,59 @@ struct DetailView: View {
                 if prices.isEmpty {
                     Text("暫無資料").font(.caption).foregroundColor(AppColors.textTertiary)
                 } else {
-                    let maxVal = prices.map(\.1).max() ?? 1
+                    Chart {
+                        ForEach(Array(prices.enumerated()), id: \.0) { index, item in
+                            LineMark(
+                                x: .value("日期", index),
+                                y: .value("價格", item.1)
+                            )
+                            .foregroundStyle(color)
+                            .interpolationMethod(.catmullRom)
 
-                    ForEach(Array(prices.enumerated()), id: \.0) { _, item in
-                        HStack(spacing: 8) {
-                            Text(item.0)
-                                .font(.caption2)
-                                .foregroundColor(AppColors.textTertiary)
-                                .frame(width: 70, alignment: .leading)
+                            AreaMark(
+                                x: .value("日期", index),
+                                y: .value("價格", item.1)
+                            )
+                            .foregroundStyle(color.opacity(0.12))
+                            .interpolationMethod(.catmullRom)
 
-                            GeometryReader { geo in
-                                let width = max(0, CGFloat(item.1 / maxVal) * geo.size.width)
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(color)
-                                    .frame(width: width, height: 14)
+                            PointMark(
+                                x: .value("日期", index),
+                                y: .value("價格", item.1)
+                            )
+                            .foregroundStyle(color)
+                            .symbolSize(30)
+                            .annotation(position: .top, spacing: 4) {
+                                Text(PriceUtils.formatPrice(item.1))
+                                    .font(.caption2)
+                                    .foregroundColor(AppColors.textTertiary)
                             }
-                            .frame(height: 14)
-
-                            Text(PriceUtils.formatPrice(item.1))
-                                .font(.caption2)
-                                .frame(width: 40, alignment: .trailing)
                         }
                     }
+                    .chartXAxis {
+                        AxisMarks(values: .automatic(desiredCount: min(prices.count, 5))) { value in
+                            if let index = value.as(Int.self), index < prices.count {
+                                AxisValueLabel {
+                                    Text(prices[index].0)
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.textTertiary)
+                                }
+                            }
+                        }
+                    }
+                    .chartYAxis {
+                        AxisMarks(position: .trailing) { value in
+                            AxisGridLine().foregroundStyle(Color.gray.opacity(0.2))
+                            AxisValueLabel {
+                                if let val = value.as(Double.self) {
+                                    Text(PriceUtils.formatPrice(val))
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.textTertiary)
+                                }
+                            }
+                        }
+                    }
+                    .frame(height: 160)
                 }
             }
             .padding(16)

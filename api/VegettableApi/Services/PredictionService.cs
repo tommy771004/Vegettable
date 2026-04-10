@@ -16,28 +16,22 @@ public class PredictionService : IPredictionService
     }
 
     /// <summary>
-    /// Predicts the given crop's price seven days ahead using a simple linear regression on recent daily averages and an optional seasonal adjustment from historical same-month averages.
+    /// 預測指定作物 7 天後均價。
+    /// 流程：
+    ///   1. 移除 IQR 統計異常值
+    ///   2. 計算 7 日移動平均（MA7）平滑化趨勢
+    ///   3. 在 MA7 序列上進行線性回歸，外推 7 天
+    ///   4. 若有歷史同月資料，混合季節均值修正（回歸 65% + 季節 35%）
+    ///   5. 依資料量與波動率計算信心度
     /// </summary>
-    /// <param name="cropName">The name of the crop to generate a price prediction for.</param>
-    /// <returns>
-    /// A <see cref="PredictionDto"/> containing:
-    /// - CropName: the requested crop name;
-    /// - CurrentPrice: the most recent average price (rounded to 1 decimal);
-    /// - PredictedPrice: the forecasted price for 7 days ahead (rounded to 1 decimal), clamped to at least 0.1;
-    /// - ChangePercent: percent change from current to predicted price (rounded to 1 decimal);
-    /// - Direction: "up", "down", or "stable" based on ChangePercent thresholds;
-    /// - Confidence: an integer score (10–90) reflecting data quantity and volatility;
-    /// - Reasoning: a brief explanation of the prediction and applied adjustments.
-    /// If there are fewer than two daily price points, the returned DTO will have CurrentPrice and PredictedPrice equal to the current average price, ChangePercent = 0, Direction = "stable", Confidence = 20, and a reasoning string indicating insufficient data.
-    /// </returns>
     public async Task<PredictionDto> PredictPriceAsync(string cropName)
     {
         var detail = await _productService.GetProductDetailAsync(cropName);
 
-        var dailyPrices = detail.DailyPricesForPrediction.Select(d => d.AvgPrice).ToList();
+        var rawPrices = detail.DailyPricesForPrediction.Select(d => d.AvgPrice).ToList();
         var monthlyPrices = detail.MonthlyPrices.Select(m => m.AvgPrice).ToList();
 
-        if (dailyPrices.Count < 2)
+        if (rawPrices.Count < 2)
         {
             return new PredictionDto
             {
@@ -51,30 +45,38 @@ public class PredictionService : IPredictionService
             };
         }
 
-        // 簡易線性回歸預測
-        var n = dailyPrices.Count;
+        // Step 1: IQR 異常值過濾 — 移除極端離群值
+        var filtered = RemoveOutliersByIQR(rawPrices);
+        if (filtered.Count < 2) filtered = rawPrices; // 過濾後不足則退回原始資料
+
+        // Step 2: MA7 移動平均平滑化（窗口不超過實際資料量）
+        var windowSize = Math.Min(7, filtered.Count);
+        var smoothed = ComputeMovingAverage(filtered, windowSize);
+
+        // Step 3: 在 MA7 序列上線性回歸外推 7 天
+        var n = smoothed.Count;
         var xs = Enumerable.Range(0, n).Select(i => (decimal)i).ToList();
         var xMean = xs.Average();
-        var yMean = dailyPrices.Average();
+        var yMean = smoothed.Average();
         var denominator = xs.Select(x => (x - xMean) * (x - xMean)).Sum();
         var slope = denominator > 0
-            ? xs.Zip(dailyPrices, (x, y) => (x - xMean) * (y - yMean)).Sum() / denominator
+            ? xs.Zip(smoothed, (x, y) => (x - xMean) * (y - yMean)).Sum() / denominator
             : 0m;
 
-        var predicted = yMean + slope * (n + 7); // 預測 7 天後
+        var predicted = yMean + slope * (n + 7 - 1);
 
-        // 季節性修正
+        // Step 4: 季節性修正（混合比例調整為 65/35）
         var currentMonth = DateTime.Today.Month;
         var sameMonthPrices = detail.MonthlyPrices
             .Where(m => m.Month.EndsWith($"/{currentMonth:D2}"))
             .Select(m => m.AvgPrice)
             .ToList();
 
-        if (sameMonthPrices.Count > 0)
+        bool hasSeasonal = sameMonthPrices.Count > 0;
+        if (hasSeasonal)
         {
             var seasonalAvg = sameMonthPrices.Average();
-            // 混合線性回歸 (70%) + 季節均值 (30%)
-            predicted = predicted * 0.7m + seasonalAvg * 0.3m;
+            predicted = predicted * 0.65m + seasonalAvg * 0.35m;
         }
 
         predicted = Math.Max(predicted, 0.1m);
@@ -82,7 +84,9 @@ public class PredictionService : IPredictionService
             ? Math.Round((predicted - detail.AvgPrice) / detail.AvgPrice * 100, 1)
             : 0;
 
-        var confidence = CalculateConfidence(dailyPrices, monthlyPrices.Count);
+        var confidence = CalculateConfidence(filtered, monthlyPrices.Count);
+        // 異常值過濾有效，信心度略增
+        if (filtered.Count < rawPrices.Count) confidence = Math.Min(confidence + 5, 90);
 
         var direction = changePercent switch
         {
@@ -91,7 +95,7 @@ public class PredictionService : IPredictionService
             _ => "stable",
         };
 
-        var reasoning = BuildReasoning(direction, changePercent, slope, sameMonthPrices.Count > 0);
+        var reasoning = BuildReasoning(direction, changePercent, slope, hasSeasonal, rawPrices.Count - filtered.Count);
 
         return new PredictionDto
         {
@@ -103,6 +107,37 @@ public class PredictionService : IPredictionService
             Confidence = confidence,
             Reasoning = reasoning,
         };
+    }
+
+    /// <summary>
+    /// IQR 異常值過濾：移除低於 Q1-1.5×IQR 或高於 Q3+1.5×IQR 的資料點
+    /// </summary>
+    private static List<decimal> RemoveOutliersByIQR(List<decimal> prices)
+    {
+        if (prices.Count < 4) return prices;
+
+        var sorted = prices.OrderBy(p => p).ToList();
+        var q1 = sorted[sorted.Count / 4];
+        var q3 = sorted[sorted.Count * 3 / 4];
+        var iqr = q3 - q1;
+        var lower = q1 - 1.5m * iqr;
+        var upper = q3 + 1.5m * iqr;
+
+        return prices.Where(p => p >= lower && p <= upper).ToList();
+    }
+
+    /// <summary>
+    /// 計算移動平均（MA），窗口大小 = windowSize
+    /// </summary>
+    private static List<decimal> ComputeMovingAverage(List<decimal> prices, int windowSize)
+    {
+        var result = new List<decimal>();
+        for (int i = windowSize - 1; i < prices.Count; i++)
+        {
+            var window = prices.Skip(i - windowSize + 1).Take(windowSize);
+            result.Add(window.Average());
+        }
+        return result.Count > 0 ? result : prices;
     }
 
     /// <summary>
@@ -165,7 +200,7 @@ public class PredictionService : IPredictionService
         return Math.Clamp(base_, 10, 90);
     }
 
-    private static string BuildReasoning(string direction, decimal change, decimal slope, bool hasSeasonal)
+    private static string BuildReasoning(string direction, decimal change, decimal slope, bool hasSeasonal, int removedOutliers)
     {
         var parts = new List<string>();
 
@@ -177,14 +212,17 @@ public class PredictionService : IPredictionService
             parts.Add("近期價格趨於穩定");
 
         if (slope > 0)
-            parts.Add("日均價線性斜率向上");
+            parts.Add("7日移動平均斜率向上");
         else if (slope < 0)
-            parts.Add("日均價線性斜率向下");
+            parts.Add("7日移動平均斜率向下");
+
+        if (removedOutliers > 0)
+            parts.Add($"已過濾 {removedOutliers} 筆異常價格資料");
 
         if (hasSeasonal)
             parts.Add("已套用歷史同月季節性修正");
 
-        parts.Add("注意：此為簡易統計預測，僅供參考");
+        parts.Add("注意：此為統計預測，僅供參考");
 
         return string.Join("。", parts) + "。";
     }

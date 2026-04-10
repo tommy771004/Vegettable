@@ -284,7 +284,10 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundColor(AppColors.textSecondary)
                         Spacer()
-                        Text(DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .none))
+                        let updateTime = settings.cacheTime == .distantPast
+                            ? "尚未更新"
+                            : DateFormatter.localizedString(from: settings.cacheTime, dateStyle: .medium, timeStyle: .short)
+                        Text(updateTime)
                             .font(.caption)
                             .foregroundColor(AppColors.textPrimary)
                     }

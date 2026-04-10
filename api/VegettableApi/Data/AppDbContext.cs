@@ -9,6 +9,7 @@ public class AppDbContext : DbContext
 
     public DbSet<PriceAlert> PriceAlerts => Set<PriceAlert>();
     public DbSet<CachedDailyPrice> CachedDailyPrices => Set<CachedDailyPrice>();
+    public DbSet<FeedbackSubmission> FeedbackSubmissions => Set<FeedbackSubmission>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -18,6 +19,12 @@ public class AppDbContext : DbContext
             e.HasIndex(a => a.IsActive); // 用於背景服務查詢所有活躍警示
             e.HasIndex(a => new { a.IsActive, a.CropName }); // 組合查詢優化
             e.HasIndex(a => new { a.DeviceToken, a.IsActive }); // 用戶特定警示查詢
+        });
+
+        modelBuilder.Entity<FeedbackSubmission>(e =>
+        {
+            e.HasIndex(f => f.CreatedAt);
+            e.HasIndex(f => f.FeedbackType);
         });
 
         modelBuilder.Entity<CachedDailyPrice>(e =>

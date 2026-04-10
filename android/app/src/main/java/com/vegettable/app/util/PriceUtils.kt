@@ -63,6 +63,37 @@ object PriceUtils {
         }
     }
 
+    /** 價格等級輔助圖示（輔助顏色以外的視覺提示，符合 WCAG 2.1） */
+    fun getPriceLevelIcon(level: String?): String {
+        return when (level) {
+            "very-cheap" -> "↓↓"
+            "cheap"      -> "↓"
+            "normal"     -> "→"
+            "expensive"  -> "↑"
+            else         -> ""
+        }
+    }
+
+    /** 價格等級完整無障礙描述（供 contentDescription 使用） */
+    fun getPriceLevelAccessibilityLabel(level: String?): String {
+        return when (level) {
+            "very-cheap" -> "價格當令便宜"
+            "cheap"      -> "價格相對便宜"
+            "normal"     -> "價格略偏貴"
+            "expensive"  -> "價格相對偏貴"
+            else         -> "價格未知"
+        }
+    }
+
+    /** 趨勢無障礙描述 */
+    fun getTrendAccessibilityLabel(trend: String?): String {
+        return when (trend) {
+            "up"   -> "上漲"
+            "down" -> "下跌"
+            else   -> "持平"
+        }
+    }
+
     /** 趨勢 → 箭頭符號  */
     fun getTrendArrow(trend: String?): String {
         if (trend == null) return "→"

@@ -42,13 +42,19 @@ struct ProductRow: View {
                         .foregroundColor(AppColors.textTertiary)
                 }
 
-                Text(PriceUtils.priceLevelLabel(product.priceLevel))
-                    .font(.caption2)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .foregroundColor(PriceUtils.priceLevelColor(product.priceLevel))
-                    .background(PriceUtils.priceLevelBgColor(product.priceLevel))
-                    .clipShape(Capsule())
+                HStack(spacing: 3) {
+                    Text(PriceUtils.priceLevelIcon(product.priceLevel))
+                        .font(.caption2)
+                        .foregroundColor(PriceUtils.priceLevelColor(product.priceLevel))
+                    Text(PriceUtils.priceLevelLabel(product.priceLevel))
+                        .font(.caption2)
+                        .foregroundColor(PriceUtils.priceLevelColor(product.priceLevel))
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(PriceUtils.priceLevelBgColor(product.priceLevel))
+                .clipShape(Capsule())
+                .accessibilityLabel(PriceUtils.priceLevelAccessibilityLabel(product.priceLevel))
             }
 
             Spacer()
@@ -64,6 +70,7 @@ struct ProductRow: View {
                         .font(.body)
                         .foregroundColor(PriceUtils.trendColor(product.trend))
                 }
+                .accessibilityLabel("\(PriceUtils.formatPrice(displayPrice)) 元，\(PriceUtils.trendAccessibilityLabel(product.trend))")
 
                 Text(priceUnit == "catty" ? "元/台斤" : "元/公斤")
                     .font(.caption2)

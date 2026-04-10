@@ -101,11 +101,20 @@ struct SearchView: View {
                         Spacer()
                     } else if !searchHistory.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("搜尋歷史")
-                                .font(.headline)
-                                .foregroundColor(AppColors.textPrimary)
-                                .padding(.horizontal)
-                            
+                            HStack {
+                                Text("搜尋歷史")
+                                    .font(.headline)
+                                    .foregroundColor(AppColors.textPrimary)
+                                Spacer()
+                                Button(action: clearSearchHistory) {
+                                    Text("清除")
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.textTertiary)
+                                }
+                                .accessibilityLabel("清除搜尋歷史")
+                            }
+                            .padding(.horizontal)
+
                             ForEach(searchHistory.prefix(5), id: \.self) { term in
                                 Button(action: { keyword = term; debounceSearch() }) {
                                     HStack {
@@ -147,6 +156,7 @@ struct SearchView: View {
             }
             .navigationTitle("搜尋")
             .navigationBarTitleDisplayMode(.large)
+            .onAppear { loadSearchHistory() }
         }
     }
 
@@ -199,12 +209,20 @@ struct SearchView: View {
     }
     
     private func addToSearchHistory(_ term: String) {
-        if !searchHistory.contains(term) {
-            searchHistory.insert(term, at: 0)
-            if searchHistory.count > 10 {
-                searchHistory.removeLast()
-            }
-        }
+        var history = searchHistory.filter { $0 != term }
+        history.insert(term, at: 0)
+        if history.count > 5 { history = Array(history.prefix(5)) }
+        searchHistory = history
+        UserDefaults.standard.set(history, forKey: "searchHistory")
+    }
+
+    private func clearSearchHistory() {
+        searchHistory = []
+        UserDefaults.standard.removeObject(forKey: "searchHistory")
+    }
+
+    private func loadSearchHistory() {
+        searchHistory = UserDefaults.standard.stringArray(forKey: "searchHistory") ?? []
     }
 }
 

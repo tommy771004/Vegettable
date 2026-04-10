@@ -64,8 +64,17 @@ struct Market: Codable, Identifiable {
     let marketCode: String
     let marketName: String
     let region: String
+    let address: String
+    let latitude: Double
+    let longitude: Double
 
     var id: String { marketCode }
+
+    /// 轉換為地圖顯示用的 MarketLocation
+    var asLocation: MarketLocation {
+        MarketLocation(name: marketName, address: address, region: region,
+                       latitude: latitude, longitude: longitude)
+    }
 }
 
 // MARK: - 市場價格
@@ -246,6 +255,21 @@ enum CropCategory: String, CaseIterable {
     var apiValue: String? {
         self == .all ? nil : rawValue
     }
+}
+
+// MARK: - 回饋提交
+struct SubmitFeedbackRequest: Codable {
+    let feedbackType: String
+    let content: String
+    let deviceToken: String?
+    let platform: String
+    let appVersion: String
+}
+
+struct FeedbackResult: Codable {
+    let id: Int
+    let message: String
+    let createdAt: String
 }
 
 // MARK: - 市場位置

@@ -68,6 +68,40 @@ class PrefsManager(context: Context) {
             return (System.currentTimeMillis() - cacheTime) > oneHour
         }
 
+    // ─── 搜尋歷史（最多保留 5 筆）────────────────────────────
+
+    fun getSearchHistory(): List<String> {
+        val json = prefs.getString(KEY_SEARCH_HISTORY, null) ?: return emptyList()
+        return try {
+            gson.fromJson(json, Array<String>::class.java).toList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun addSearchHistory(keyword: String) {
+        if (keyword.isBlank()) return
+        val history = getSearchHistory().toMutableList()
+        history.remove(keyword)           // 避免重複，移到最前
+        history.add(0, keyword)
+        val trimmed = history.take(5)     // 只保留最新 5 筆
+        prefs.edit().putString(KEY_SEARCH_HISTORY, gson.toJson(trimmed)).apply()
+    }
+
+    fun clearSearchHistory() {
+        prefs.edit().remove(KEY_SEARCH_HISTORY).apply()
+    }
+
+    /** 取得或建立持久化裝置識別碼（用於警示 API） */
+    fun getDeviceToken(): String {
+        var token = prefs.getString(KEY_DEVICE_TOKEN, null)
+        if (token == null) {
+            token = "android-${java.util.UUID.randomUUID()}"
+            prefs.edit().putString(KEY_DEVICE_TOKEN, token).apply()
+        }
+        return token
+    }
+
     companion object {
         private const val PREFS_NAME = "vegettable_prefs"
         private const val KEY_PRICE_UNIT = "price_unit"
@@ -78,5 +112,7 @@ class PrefsManager(context: Context) {
         private const val KEY_FAVORITES = "favorites"
         private const val KEY_CACHED_PRODUCTS = "cached_products"
         private const val KEY_CACHE_TIME = "cache_time"
+        private const val KEY_DEVICE_TOKEN = "device_token"
+        private const val KEY_SEARCH_HISTORY = "search_history"
     }
 }

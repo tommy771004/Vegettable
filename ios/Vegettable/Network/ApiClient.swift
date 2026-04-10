@@ -19,6 +19,7 @@ enum ApiEndpoints {
     static let livestock = "/api/livestock"
     static let organic = "/api/organic"
     static let health = "/health"
+    static let feedback = "/api/feedback"
 }
 
 // MARK: - API 客戶端
@@ -424,6 +425,19 @@ class ApiClient: ObservableObject {
         if let name = cropName { params["cropName"] = name }
         if let cert = certType { params["certType"] = cert }
         return try await get(path: ApiEndpoints.organic, params: params.isEmpty ? nil : params)
+    }
+
+    // MARK: - Feedback API
+    func submitFeedback(type: String, content: String) async throws -> FeedbackResult {
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        let request = SubmitFeedbackRequest(
+            feedbackType: type,
+            content: content,
+            deviceToken: nil,
+            platform: "ios",
+            appVersion: appVersion
+        )
+        return try await post(path: ApiEndpoints.feedback, body: request)
     }
 
     // MARK: - Health

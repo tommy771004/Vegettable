@@ -116,14 +116,16 @@ class ProductAdapter(
             // 單位
             tvUnit.setText(if ("catty" == priceUnit) "元/台斤" else "元/公斤")
 
-            // 價格等級
+            // 價格等級（圖示 + 文字 + 無障礙描述）
+            val icon = PriceUtils.getPriceLevelIcon(p.priceLevel)
             val levelLabel = PriceUtils.getPriceLevelLabel(p.priceLevel)
-            tvLevel.setText(levelLabel)
+            tvLevel.text = if (icon.isNotEmpty()) "$icon $levelLabel" else levelLabel
             tvLevel.setTextColor(PriceUtils.getPriceLevelColor(p.priceLevel))
+            tvLevel.contentDescription = PriceUtils.getPriceLevelAccessibilityLabel(p.priceLevel)
             val bg = GradientDrawable()
             bg.setColor(PriceUtils.getPriceLevelBgColor(p.priceLevel))
-            bg.setCornerRadius(20f)
-            tvLevel.setBackground(bg)
+            bg.cornerRadius = 20f
+            tvLevel.background = bg
 
             // 收藏
             val isFav = favorites != null && favorites!!.contains(p.cropCode)
