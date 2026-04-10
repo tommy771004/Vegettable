@@ -30,6 +30,7 @@ class LivestockActivity : AppCompatActivity() {
     private lateinit var etSearch: TextInputEditText
     private lateinit var layoutError: View
     private lateinit var tvError: TextView
+    private lateinit var tvEmpty: TextView
     private lateinit var adapter: LivestockAdapter
 
     private var allItems: List<LivestockPrice> = emptyList()
@@ -47,6 +48,7 @@ class LivestockActivity : AppCompatActivity() {
         etSearch = findViewById(R.id.et_search)
         layoutError = findViewById(R.id.layout_error)
         tvError = findViewById(R.id.tv_error)
+        tvEmpty = findViewById(R.id.tv_empty)
 
         rv.layoutManager = LinearLayoutManager(this)
         adapter = LivestockAdapter()
@@ -107,8 +109,9 @@ class LivestockActivity : AppCompatActivity() {
 
     private fun applyFilter() {
         val filtered = if (searchQuery.isEmpty()) allItems
-        else allItems.filter { it.livestockName.contains(searchQuery) }
+        else allItems.filter { it.livestockName.contains(searchQuery, ignoreCase = true) }
         adapter.setItems(filtered)
+        tvEmpty.visibility = if (filtered.isEmpty() && allItems.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun showError(msg: String) {

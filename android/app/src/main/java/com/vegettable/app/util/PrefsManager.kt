@@ -68,6 +68,23 @@ class PrefsManager(context: Context) {
             return (System.currentTimeMillis() - cacheTime) > oneHour
         }
 
+    /** 快取存入時間（毫秒），0 表示無快取 */
+    val cacheTimeMs: Long
+        get() = prefs.getLong(KEY_CACHE_TIME, 0)
+
+    /** 快取年齡的人性化描述，例如「3 小時前」「剛才」 */
+    val cacheAgeText: String
+        get() {
+            val savedAt = cacheTimeMs
+            if (savedAt == 0L) return "無快取"
+            val mins = (System.currentTimeMillis() - savedAt) / (1000 * 60)
+            return when {
+                mins < 1 -> "剛才"
+                mins < 60 -> "${mins} 分鐘前"
+                else -> "${mins / 60} 小時前"
+            }
+        }
+
     // ─── 搜尋歷史（最多保留 5 筆）────────────────────────────
 
     fun getSearchHistory(): List<String> {

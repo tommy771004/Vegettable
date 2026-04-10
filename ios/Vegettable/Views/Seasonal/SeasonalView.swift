@@ -79,12 +79,24 @@ struct SeasonalView: View {
                         }
                     }
                     .listStyle(.plain)
+                    .refreshable { await refreshSeasonal() }
                 }
             }
         }
         .navigationTitle("季節行事曆")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { loadSeasonal() }
+    }
+
+    @MainActor
+    private func refreshSeasonal() async {
+        do {
+            let result = try await ApiClient.shared.fetchSeasonalInfo(category: selectedCategory)
+            items = result
+            errorMessage = nil
+        } catch {
+            errorMessage = "重新整理失敗: \(error.localizedDescription)"
+        }
     }
 
     private func loadSeasonal() {

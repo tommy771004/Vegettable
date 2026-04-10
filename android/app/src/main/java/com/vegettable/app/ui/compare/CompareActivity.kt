@@ -1,10 +1,13 @@
 package com.vegettable.app.ui.compare
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -29,6 +32,8 @@ class CompareActivity : AppCompatActivity() {
     private var tvError: TextView? = null
     private var adapter: CompareAdapter? = null
     private var lastCropName: String? = null
+    private var retryCount = 0
+    private val retryHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,14 +53,23 @@ class CompareActivity : AppCompatActivity() {
 
         findViewById<View?>(R.id.btn_retry).setOnClickListener {
             if (!lastCropName.isNullOrEmpty()) {
-                comparePrices(lastCropName)
+                val delay = when (retryCount) {
+                    0 -> 0L
+                    1 -> 2000L
+                    2 -> 4000L
+                    else -> 8000L
+                }
+                retryCount++
+                retryHandler.postDelayed({ comparePrices(lastCropName) }, delay)
             }
         }
 
-        etCropName?.setOnEditorActionListener { _, actionId, _ ->
+        etCropName?.setOnEditorActionListener { v, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 val crop = etCropName?.text.toString().trim()
                 if (crop.isNotEmpty()) {
+                    val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.hideSoftInputFromWindow(v.windowToken, 0)
                     comparePrices(crop)
                 }
                 true
@@ -69,6 +83,7 @@ class CompareActivity : AppCompatActivity() {
         lastCropName = cropName
         progressBar?.visibility = View.VISIBLE
         layoutError?.visibility = View.GONE
+        rvCompare?.visibility = View.GONE
 
         instance?.api?.compareMarketPrices(cropName, null)?.enqueue(object : Callback<ApiResponse<MutableList<MarketPrice?>?>?> {
             override fun onResponse(
@@ -80,7 +95,12 @@ class CompareActivity : AppCompatActivity() {
                 if (response.isSuccessful && body != null && body.isSuccess && body.data != null) {
                     val marketPrices = body.data?.filterNotNull()?.toMutableList() ?: mutableListOf()
                     adapter?.setItems(marketPrices)
-                    rvCompare?.visibility = View.VISIBLE
+                    retryCount = 0
+                    if (marketPrices.isEmpty()) {
+                        showError("找不到「${lastCropName}」的市場比價資料")
+                    } else {
+                        rvCompare?.visibility = View.VISIBLE
+                    }
                 } else {
                     showError("無法取得比價資料")
                 }

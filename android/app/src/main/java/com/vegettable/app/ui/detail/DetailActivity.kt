@@ -90,11 +90,9 @@ class DetailActivity : AppCompatActivity() {
     private fun updateFavoriteIcon() {
         val isFav = cropCode != null && prefs!!.isFavorite(cropCode!!)
         binding!!.btnFavorite.setImageResource(
-            if (isFav)
-                android.R.drawable.btn_star_big_on
-            else
-                android.R.drawable.btn_star_big_off
+            if (isFav) R.drawable.ic_favorite_on else R.drawable.ic_favorite_off
         )
+        binding!!.btnFavorite.contentDescription = if (isFav) "取消收藏" else "加入收藏"
     }
 
     private fun loadProductDetail() {
@@ -384,9 +382,13 @@ class DetailActivity : AppCompatActivity() {
             .setView(dialogLayout)
             .setPositiveButton("建立警示") { _, _ ->
                 val priceText = etPrice.text.toString().trim()
-                val targetPrice = priceText.toDoubleOrNull()
-                if (targetPrice == null || targetPrice <= 0) {
+                if (priceText.length > 10) {
                     Toast.makeText(this, "請輸入有效的目標價格", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val targetPrice = priceText.toDoubleOrNull()
+                if (targetPrice == null || targetPrice <= 0 || targetPrice > 99999) {
+                    Toast.makeText(this, "請輸入 1 ~ 99,999 之間的有效價格", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 val condition = if (radioGroup.checkedRadioButtonId == rbBelow.id) "below" else "above"

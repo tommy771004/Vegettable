@@ -169,6 +169,11 @@ struct SearchView: View {
             return
         }
 
+        guard kw.count <= 50 else {
+            errorMessage = "搜尋關鍵字最多 50 個字"
+            return
+        }
+
         guard networkMonitor.isConnected else {
             errorMessage = "網路連線不可用"
             debugLogger.warning("搜尋失敗: 網路未連接")

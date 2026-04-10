@@ -36,6 +36,24 @@
             android:layout_marginTop="4dp" />
     </LinearLayout>
 
+    <!-- 離線快取提示 Banner -->
+    <TextView
+        android:id="@+id/tv_offline_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:textSize="13sp"
+        android:textColor="#B45309"
+        android:background="#FEF3C7"
+        android:gravity="center_vertical"
+        android:visibility="gone"
+        android:accessibilityLiveRegion="polite"
+        tools:text="⚠️ 離線模式｜顯示 3 小時前的快取資料"
+        xmlns:tools="http://schemas.android.com/tools"/>
+
     <!-- Liquid Glass 分類選擇 -->
     <HorizontalScrollView
         android:layout_width="match_parent"

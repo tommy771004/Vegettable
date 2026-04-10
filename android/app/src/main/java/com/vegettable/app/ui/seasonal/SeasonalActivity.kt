@@ -11,6 +11,7 @@ import android.widget.CompoundButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -19,6 +20,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.vegettable.app.R
 import com.vegettable.app.model.ApiResponse
+import com.vegettable.app.model.Category
 import com.vegettable.app.model.SeasonalInfo
 import com.vegettable.app.network.ApiClient.Companion.instance
 import retrofit2.Call
@@ -47,32 +49,59 @@ class SeasonalActivity : AppCompatActivity() {
         adapter = SeasonalAdapter()
         rv!!.setAdapter(adapter)
 
-        setupCategories()
         swipeRefresh!!.setOnRefreshListener(OnRefreshListener { this.loadData() })
 
-        loadData()
+        loadCategories()
     }
 
-    private fun setupCategories() {
-        val cats = arrayOf<Array<String?>?>(
-            arrayOf<String?>("vegetable", "蔬菜"),
-            arrayOf<String?>("fruit", "水果"),
-            arrayOf<String?>("flower", "花卉")
-        )
-        for (c in cats) {
-            val chip = Chip(this)
-            chip.setText(c!![1])
-            chip.setCheckable(true)
-            chip.setTag(c[0])
-            if (c[0] == selectedCategory) chip.setChecked(true)
-            chip.setOnCheckedChangeListener(CompoundButton.OnCheckedChangeListener { v: CompoundButton?, checked: Boolean ->
-                if (checked) {
-                    selectedCategory = v!!.getTag() as String?
-                    loadData()
+    /** 從 API 取得動態分類，失敗時 fallback 到硬編碼三項 */
+    private fun loadCategories() {
+        instance!!.api.getCategories()
+            ?.enqueue(object : Callback<ApiResponse<MutableList<Category?>?>?> {
+                override fun onResponse(
+                    call: Call<ApiResponse<MutableList<Category?>?>?>,
+                    response: Response<ApiResponse<MutableList<Category?>?>?>
+                ) {
+                    val cats = if (response.isSuccessful && response.body()?.isSuccess == true)
+                        response.body()?.data?.filterNotNull() ?: fallbackCategories()
+                    else fallbackCategories()
+                    buildCategoryChips(cats)
+                }
+
+                override fun onFailure(call: Call<ApiResponse<MutableList<Category?>?>?>, t: Throwable) {
+                    buildCategoryChips(fallbackCategories())
                 }
             })
+    }
+
+    private fun fallbackCategories() = listOf(
+        Category("vegetable", "蔬菜", "🥦", null),
+        Category("fruit",     "水果", "🍎", null),
+        Category("flower",    "花卉", "🌸", null)
+    )
+
+    private fun buildCategoryChips(cats: List<Category>) {
+        chipGroup!!.removeAllViews()
+        cats.forEachIndexed { index, cat ->
+            val chip = Chip(this)
+            chip.text = cat.label
+            chip.isCheckable = true
+            chip.tag = cat.key
+            if (index == 0 && selectedCategory == null) {
+                selectedCategory = cat.key
+                chip.isChecked = true
+            } else if (cat.key == selectedCategory) {
+                chip.isChecked = true
+            }
+            chip.setOnCheckedChangeListener { v, checked ->
+                if (checked) {
+                    selectedCategory = v.tag as String?
+                    loadData()
+                }
+            }
             chipGroup!!.addView(chip)
         }
+        loadData()
     }
 
     private fun loadData() {
@@ -102,8 +131,15 @@ class SeasonalActivity : AppCompatActivity() {
         private var items: MutableList<SeasonalInfo> = ArrayList<SeasonalInfo>()
 
         fun setItems(list: MutableList<SeasonalInfo?>?) {
-            this.items = (if (list != null) list else ArrayList<SeasonalInfo>()) as MutableList<SeasonalInfo>
-            notifyDataSetChanged()
+            val newItems = list?.filterNotNull() ?: emptyList()
+            val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+                override fun getOldListSize() = items.size
+                override fun getNewListSize() = newItems.size
+                override fun areItemsTheSame(o: Int, n: Int) = items[o].cropName == newItems[n].cropName
+                override fun areContentsTheSame(o: Int, n: Int) = items[o] == newItems[n]
+            })
+            items = newItems.toMutableList()
+            diff.dispatchUpdatesTo(this)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {

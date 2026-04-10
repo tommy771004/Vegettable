@@ -130,11 +130,9 @@ class ProductAdapter(
             // 收藏
             val isFav = favorites != null && favorites!!.contains(p.cropCode)
             btnFav.setImageResource(
-                if (isFav)
-                    android.R.drawable.btn_star_big_on
-                else
-                    android.R.drawable.btn_star_big_off
+                if (isFav) R.drawable.ic_favorite_on else R.drawable.ic_favorite_off
             )
+            btnFav.contentDescription = if (isFav) "取消收藏 ${p.cropName}" else "加入收藏 ${p.cropName}"
             btnFav.setOnClickListener(View.OnClickListener { v: View? -> listener.onFavoriteClick(p) })
 
             // 點擊

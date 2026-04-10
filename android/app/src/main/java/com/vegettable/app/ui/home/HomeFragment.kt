@@ -122,6 +122,7 @@ class HomeFragment : Fragment(), ProductAdapter.OnItemClickListener {
                         val products: MutableList<ProductSummary> = response.body()!!.data!!.filterNotNull().toMutableList()
                         adapter!!.setItems(products)
                         binding!!.rvProducts.setVisibility(View.VISIBLE)
+                        binding!!.tvOfflineBanner.visibility = View.GONE
 
                         // 快取最新的產品列表
                         prefs!!.cacheProducts(Gson().toJson(products))
@@ -162,11 +163,9 @@ class HomeFragment : Fragment(), ProductAdapter.OnItemClickListener {
                 if (products != null && !products.isEmpty()) {
                     adapter!!.setItems(products)
                     binding!!.rvProducts.setVisibility(View.VISIBLE)
-                    Toast.makeText(
-                        requireContext(),
-                        "目前為離線模式: " + message,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    val ageText = prefs!!.cacheAgeText
+                    binding!!.tvOfflineBanner.text = "⚠️ 離線模式｜顯示 $ageText 的快取資料"
+                    binding!!.tvOfflineBanner.visibility = View.VISIBLE
                     return
                 }
             } catch (ignored: Exception) {
