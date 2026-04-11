@@ -188,6 +188,43 @@ struct OrganicPrice: Codable, Identifiable {
     var id: String { "\(cropName)_\(certType)_\(marketName)" }
 }
 
+// MARK: - 毛豬行情 (肉品市場)
+struct AnimalPrice: Codable, Identifiable {
+    let productCode: String
+    let productName: String
+    let marketName: String
+    let avgPrice: Decimal
+    let upperPrice: Decimal
+    let lowerPrice: Decimal
+    let headCount: Int
+    let avgWeight: Decimal
+    let transDate: String
+    let trend: String // "up" | "down" | "stable"
+
+    var id: String { "\(productName)_\(marketName)_\(transDate)" }
+}
+
+// MARK: - 農業氣象觀測
+struct WeatherObservation: Codable, Identifiable {
+    let stationId: String
+    let stationName: String
+    let county: String
+    let township: String
+    let obsTime: String
+    let temperature: Double?
+    let relHumidity: Double?
+    let rainfall: Double?
+    let windSpeed: Double?
+    let windDirection: String?
+    let sunshineHours: Double?
+    let solarRadiation: Double?
+    let latitude: Double?
+    let longitude: Double?
+    let weatherSummary: String
+
+    var id: String { "\(stationId)_\(obsTime)" }
+}
+
 // MARK: - 花卉行情
 struct FlowerPrice: Codable, Identifiable {
     let flowerCode: String
