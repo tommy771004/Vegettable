@@ -16,8 +16,10 @@ import com.vegettable.app.ui.aquatic.AquaticActivity
 import com.vegettable.app.ui.compare.CompareActivity
 import com.vegettable.app.ui.livestock.LivestockActivity
 import com.vegettable.app.ui.map.MapActivity
+import com.vegettable.app.ui.animal.AnimalActivity
 import com.vegettable.app.ui.flower.FlowerActivity
 import com.vegettable.app.ui.organic.OrganicActivity
+import com.vegettable.app.ui.weather.WeatherActivity
 import com.vegettable.app.ui.seasonal.SeasonalActivity
 import com.vegettable.app.util.PrefsManager
 
@@ -98,6 +100,14 @@ class SettingsFragment : Fragment() {
 
         view.findViewById<View?>(R.id.btn_flower).setOnClickListener(View.OnClickListener { v: View? ->
             startActivity(Intent(requireContext(), FlowerActivity::class.java))
+        })
+
+        view.findViewById<View?>(R.id.btn_animal).setOnClickListener(View.OnClickListener { v: View? ->
+            startActivity(Intent(requireContext(), AnimalActivity::class.java))
+        })
+
+        view.findViewById<View?>(R.id.btn_weather).setOnClickListener(View.OnClickListener { v: View? ->
+            startActivity(Intent(requireContext(), WeatherActivity::class.java))
         })
     }
 }

@@ -152,6 +152,26 @@ struct SettingsView: View {
                 .navigationDestination(value: "map") {
                     MapListView()
                 }
+
+                NavigationLink(value: "animal") {
+                    SettingsRow(icon: "pawprint.fill", title: "毛豬行情", color: Color(hex: "#F57F17"))
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("毛豬行情")
+                        .accessibilityHint("查看肉品市場毛豬交易行情")
+                }
+                .navigationDestination(value: "animal") {
+                    AnimalView()
+                }
+
+                NavigationLink(value: "weather") {
+                    SettingsRow(icon: "cloud.sun.rain.fill", title: "農業氣象", color: Color(hex: "#1565C0"))
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("農業氣象")
+                        .accessibilityHint("查看各地農業氣象站即時觀測資料")
+                }
+                .navigationDestination(value: "weather") {
+                    WeatherView()
+                }
             }
             .padding(16)
         }

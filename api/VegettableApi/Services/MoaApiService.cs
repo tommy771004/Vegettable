@@ -22,6 +22,8 @@ public class MoaApiService : IMoaApiService
     private const string LivestockTransEndpoint = "Service/OpenData/FromM/LivestockTransData.aspx";
     private const string OrganicTransEndpoint  = "Service/OpenData/FromM/TAPData.aspx";
     private const string FlowerTransEndpoint   = "Service/OpenData/FromM/FlowerData.aspx";
+    private const string AnimalTransEndpoint   = "Service/OpenData/FromM/AnimalTransData.aspx";
+    private const string AgrWeatherEndpoint    = "Service/OpenData/FromM/AgrWeatherData.aspx";
 
     private static readonly ConcurrentDictionary<string, Task<string>> _inflightRequests = new();
 
@@ -140,6 +142,52 @@ public class MoaApiService : IMoaApiService
 
         var json = await FetchJsonAsync(FlowerTransEndpoint, queryParams, cacheKey);
         var data = Deserialize<FlowerRawData>(json);
+        CacheResult(cacheKey, data, cacheMinutes);
+        return data;
+    }
+
+    // ─── 毛豬行情 ──────────────────────────────────────────────
+
+    public async Task<List<AnimalRawData>> FetchAnimalTransDataAsync(
+        DateTime? startDate = null, DateTime? endDate = null,
+        string? productName = null, string? market = null,
+        int top = 10000)
+    {
+        var cacheMinutes = _config.GetValue("ApiSettings:Cache:AnimalMinutes", 10);
+        var cacheKey = $"moa_animal_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{productName}_{market}_{top}";
+
+        if (_cache.TryGetValue(cacheKey, out List<AnimalRawData>? cached) && cached is not null)
+            return cached;
+
+        var queryParams = BuildBaseParams(top, 0, startDate, endDate);
+        if (!string.IsNullOrWhiteSpace(productName)) queryParams.Add($"ProductName={Uri.EscapeDataString(productName)}");
+        if (!string.IsNullOrWhiteSpace(market))      queryParams.Add($"Market={Uri.EscapeDataString(market)}");
+
+        var json = await FetchJsonAsync(AnimalTransEndpoint, queryParams, cacheKey);
+        var data = Deserialize<AnimalRawData>(json);
+        CacheResult(cacheKey, data, cacheMinutes);
+        return data;
+    }
+
+    // ─── 農業氣象 ──────────────────────────────────────────────
+
+    public async Task<List<WeatherObservationRawData>> FetchAgrWeatherDataAsync(
+        DateTime? startDate = null, DateTime? endDate = null,
+        string? stationId = null, string? county = null,
+        int top = 1000)
+    {
+        var cacheMinutes = _config.GetValue("ApiSettings:Cache:WeatherMinutes", 30);
+        var cacheKey = $"moa_weather_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{stationId}_{county}_{top}";
+
+        if (_cache.TryGetValue(cacheKey, out List<WeatherObservationRawData>? cached) && cached is not null)
+            return cached;
+
+        var queryParams = BuildBaseParams(top, 0, startDate, endDate);
+        if (!string.IsNullOrWhiteSpace(stationId)) queryParams.Add($"StationId={Uri.EscapeDataString(stationId)}");
+        if (!string.IsNullOrWhiteSpace(county))    queryParams.Add($"County={Uri.EscapeDataString(county)}");
+
+        var json = await FetchJsonAsync(AgrWeatherEndpoint, queryParams, cacheKey);
+        var data = Deserialize<WeatherObservationRawData>(json);
         CacheResult(cacheKey, data, cacheMinutes);
         return data;
     }

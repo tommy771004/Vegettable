@@ -45,4 +45,20 @@ public interface IMoaApiService
         string? flowerName = null,
         string? market = null,
         int top = 10000);
+
+    /// <summary>取得毛豬交易行情 (AnimalTransData — 肉品市場)</summary>
+    Task<List<AnimalRawData>> FetchAnimalTransDataAsync(
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        string? productName = null,
+        string? market = null,
+        int top = 10000);
+
+    /// <summary>取得農業氣象觀測資料 (AgrWeatherData)</summary>
+    Task<List<WeatherObservationRawData>> FetchAgrWeatherDataAsync(
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        string? stationId = null,
+        string? county = null,
+        int top = 1000);
 }

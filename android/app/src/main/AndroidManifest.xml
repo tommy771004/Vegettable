@@ -33,5 +33,7 @@
         <activity android:name=".ui.livestock.LivestockActivity" android:parentActivityName=".MainActivity" />
         <activity android:name=".ui.organic.OrganicActivity" android:parentActivityName=".MainActivity" />
         <activity android:name=".ui.flower.FlowerActivity" android:parentActivityName=".MainActivity" />
+        <activity android:name=".ui.animal.AnimalActivity" android:parentActivityName=".MainActivity" />
+        <activity android:name=".ui.weather.WeatherActivity" android:parentActivityName=".MainActivity" />
     </application>
 </manifest>

@@ -3,7 +3,9 @@ package com.vegettable.app.network
 import com.vegettable.app.model.ApiResponse
 import com.vegettable.app.model.AquaticPrice
 import com.vegettable.app.model.Category
+import com.vegettable.app.model.AnimalPrice
 import com.vegettable.app.model.FlowerPrice
+import com.vegettable.app.model.WeatherObservation
 import com.vegettable.app.model.CreateAlertRequest
 import com.vegettable.app.model.FeedbackRequest
 import com.vegettable.app.model.FeedbackResult
@@ -142,6 +144,25 @@ interface ApiService {
         @Path("marketName") marketName: String?,
         @Query("flowerName") flowerName: String?
     ): Call<ApiResponse<MutableList<FlowerPrice?>?>?>?
+
+    // ─── Animal (毛豬行情) ────────────────────────────────────
+    @GET("/api/animal")
+    fun getAnimalPrices(
+        @Query("productName") productName: String?,
+        @Query("market") market: String?
+    ): Call<ApiResponse<MutableList<AnimalPrice?>?>?>?
+
+    // ─── Weather (農業氣象) ───────────────────────────────────
+    @GET("/api/weather")
+    fun getWeatherObservations(
+        @Query("county") county: String?
+    ): Call<ApiResponse<MutableList<WeatherObservation?>?>?>?
+
+    @GET("/api/weather/{stationId}/obs")
+    fun getStationObservations(
+        @Path("stationId") stationId: String,
+        @Query("days") days: Int?
+    ): Call<ApiResponse<MutableList<WeatherObservation?>?>?>?
 
     // ─── Feedback ────────────────────────────────────────────
     @POST("/api/feedback")

@@ -19,6 +19,8 @@ enum ApiEndpoints {
     static let livestock = "/api/livestock"
     static let organic = "/api/organic"
     static let flower = "/api/flower"
+    static let animal = "/api/animal"
+    static let weather = "/api/weather"
     static let health = "/health"
     static let feedback = "/api/feedback"
 }
@@ -442,6 +444,27 @@ class ApiClient: ObservableObject {
         var params: [String: String] = [:]
         if let name = flowerName { params["flowerName"] = name }
         return try await get(path: "\(ApiEndpoints.flower)/\(encoded)/prices", params: params.isEmpty ? nil : params)
+    }
+
+    // MARK: - Animal (毛豬行情) API
+    func fetchAnimalPrices(productName: String? = nil, market: String? = nil) async throws -> [AnimalPrice] {
+        var params: [String: String] = [:]
+        if let name = productName { params["productName"] = name }
+        if let m = market { params["market"] = m }
+        return try await get(path: ApiEndpoints.animal, params: params.isEmpty ? nil : params)
+    }
+
+    // MARK: - Weather (農業氣象) API
+    func fetchWeatherObservations(county: String? = nil) async throws -> [WeatherObservation] {
+        var params: [String: String] = [:]
+        if let c = county { params["county"] = c }
+        return try await get(path: ApiEndpoints.weather, params: params.isEmpty ? nil : params)
+    }
+
+    func fetchStationObservations(stationId: String, days: Int = 7) async throws -> [WeatherObservation] {
+        guard !stationId.isEmpty else { throw ApiError.invalidInput("測站代碼不能為空") }
+        let encoded = stationId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? stationId
+        return try await get(path: "\(ApiEndpoints.weather)/\(encoded)/obs", params: ["days": "\(days)"])
     }
 
     // MARK: - Feedback API
