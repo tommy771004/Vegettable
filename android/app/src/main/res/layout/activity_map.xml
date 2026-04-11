@@ -7,6 +7,7 @@
     android:orientation="vertical"
     android:background="@color/background">
 
+    <!-- 標題列 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -26,16 +27,28 @@
             android:contentDescription="返回" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="批發市場位置"
             android:textSize="26sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-medium"
             android:textColor="@color/primary_dark"
             android:layout_marginStart="8dp" />
+
+        <!-- 地圖 / 列表 切換按鈕 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_toggle_view"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="地圖"
+            android:textSize="13sp"
+            app:icon="@android:drawable/ic_dialog_map" />
     </LinearLayout>
 
+    <!-- 地區篩選 Chips -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -52,6 +65,16 @@
             app:selectionRequired="true" />
     </HorizontalScrollView>
 
+    <!-- 地圖視圖（預設隱藏） -->
+    <org.osmdroid.views.MapView
+        android:id="@+id/map_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone"
+        android:tilesScaledToDpi="true" />
+
+    <!-- 列表視圖 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_markets"
         android:layout_width="match_parent"

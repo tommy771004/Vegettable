@@ -265,7 +265,9 @@ class DetailActivity : AppCompatActivity() {
                     }
                 }
 
-                override fun onFailure(call: Call<ApiResponse<PricePrediction?>?>, t: Throwable) {}
+                override fun onFailure(call: Call<ApiResponse<PricePrediction?>?>, t: Throwable) {
+                    binding!!.cardPrediction.visibility = View.GONE
+                }
             })
     }
 
@@ -289,6 +291,7 @@ class DetailActivity : AppCompatActivity() {
                     call: Call<ApiResponse<MutableList<Recipe?>?>?>,
                     t: Throwable
                 ) {
+                    binding!!.cardRecipes.visibility = View.GONE
                 }
             })
     }

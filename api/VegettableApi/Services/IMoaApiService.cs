@@ -37,4 +37,12 @@ public interface IMoaApiService
         DateTime? endDate = null,
         string? cropName = null,
         int top = 10000);
+
+    /// <summary>取得花卉交易行情 (FlowerData)</summary>
+    Task<List<FlowerRawData>> FetchFlowerTransDataAsync(
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        string? flowerName = null,
+        string? market = null,
+        int top = 10000);
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 /// 設定 / 管理價格警示的 Sheet
 struct PriceAlertSheet: View {
@@ -240,14 +241,33 @@ struct PriceAlertSheet: View {
         errorMessage = nil
         successMessage = nil
 
-        let request = CreateAlertRequest(
-            deviceToken: deviceToken,
-            cropName: cropName,
-            targetPrice: price,
-            condition: condition
-        )
-
         Task {
+            // 確保推播權限已授予，未授予則先請求
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            if settings.authorizationStatus != .authorized {
+                let granted = await AppDelegate.requestNotificationPermission()
+                if !granted {
+                    await MainActor.run {
+                        errorMessage = "需要允許推播通知才能接收價格警示"
+                        isSubmitting = false
+                    }
+                    return
+                }
+                // 等待 APNs token 寫入 UserDefaults（最多 2 秒）
+                var waited = 0
+                while UserDefaults.standard.string(forKey: "deviceToken")?.hasPrefix("ios-") == false && waited < 20 {
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                    waited += 1
+                }
+            }
+
+            let request = CreateAlertRequest(
+                deviceToken: deviceToken,
+                cropName: cropName,
+                targetPrice: price,
+                condition: condition
+            )
+
             do {
                 let newAlert = try await ApiClient.shared.createAlert(request: request)
                 await MainActor.run {

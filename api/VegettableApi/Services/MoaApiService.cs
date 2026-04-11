@@ -21,6 +21,7 @@ public class MoaApiService : IMoaApiService
     private const string AquaticTransEndpoint  = "Service/OpenData/FromM/AquaticTransData.aspx";
     private const string LivestockTransEndpoint = "Service/OpenData/FromM/LivestockTransData.aspx";
     private const string OrganicTransEndpoint  = "Service/OpenData/FromM/TAPData.aspx";
+    private const string FlowerTransEndpoint   = "Service/OpenData/FromM/FlowerData.aspx";
 
     private static readonly ConcurrentDictionary<string, Task<string>> _inflightRequests = new();
 
@@ -116,6 +117,29 @@ public class MoaApiService : IMoaApiService
 
         var json = await FetchJsonAsync(OrganicTransEndpoint, queryParams, cacheKey);
         var data = Deserialize<OrganicRawData>(json);
+        CacheResult(cacheKey, data, cacheMinutes);
+        return data;
+    }
+
+    // ─── 花卉行情 ──────────────────────────────────────────────
+
+    public async Task<List<FlowerRawData>> FetchFlowerTransDataAsync(
+        DateTime? startDate = null, DateTime? endDate = null,
+        string? flowerName = null, string? market = null,
+        int top = 10000)
+    {
+        var cacheMinutes = _config.GetValue("ApiSettings:Cache:FlowerMinutes", 10);
+        var cacheKey = $"moa_flower_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{flowerName}_{market}_{top}";
+
+        if (_cache.TryGetValue(cacheKey, out List<FlowerRawData>? cached) && cached is not null)
+            return cached;
+
+        var queryParams = BuildBaseParams(top, 0, startDate, endDate);
+        if (!string.IsNullOrWhiteSpace(flowerName)) queryParams.Add($"FlowerName={Uri.EscapeDataString(flowerName)}");
+        if (!string.IsNullOrWhiteSpace(market))     queryParams.Add($"Market={Uri.EscapeDataString(market)}");
+
+        var json = await FetchJsonAsync(FlowerTransEndpoint, queryParams, cacheKey);
+        var data = Deserialize<FlowerRawData>(json);
         CacheResult(cacheKey, data, cacheMinutes);
         return data;
     }

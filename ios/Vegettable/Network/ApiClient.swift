@@ -18,6 +18,7 @@ enum ApiEndpoints {
     static let fish = "/api/fish"
     static let livestock = "/api/livestock"
     static let organic = "/api/organic"
+    static let flower = "/api/flower"
     static let health = "/health"
     static let feedback = "/api/feedback"
 }
@@ -425,6 +426,22 @@ class ApiClient: ObservableObject {
         if let name = cropName { params["cropName"] = name }
         if let cert = certType { params["certType"] = cert }
         return try await get(path: ApiEndpoints.organic, params: params.isEmpty ? nil : params)
+    }
+
+    // MARK: - Flower API
+    func fetchFlowerPrices(flowerName: String? = nil, market: String? = nil) async throws -> [FlowerPrice] {
+        var params: [String: String] = [:]
+        if let name = flowerName { params["flowerName"] = name }
+        if let market = market { params["market"] = market }
+        return try await get(path: ApiEndpoints.flower, params: params.isEmpty ? nil : params)
+    }
+
+    func fetchFlowerPricesByMarket(marketName: String, flowerName: String? = nil) async throws -> [FlowerPrice] {
+        guard !marketName.isEmpty else { throw ApiError.invalidInput("市場名稱不能為空") }
+        let encoded = marketName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? marketName
+        var params: [String: String] = [:]
+        if let name = flowerName { params["flowerName"] = name }
+        return try await get(path: "\(ApiEndpoints.flower)/\(encoded)/prices", params: params.isEmpty ? nil : params)
     }
 
     // MARK: - Feedback API
