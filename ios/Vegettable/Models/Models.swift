@@ -188,6 +188,22 @@ struct OrganicPrice: Codable, Identifiable {
     var id: String { "\(cropName)_\(certType)_\(marketName)" }
 }
 
+// MARK: - 花卉行情
+struct FlowerPrice: Codable, Identifiable {
+    let flowerCode: String
+    let flowerName: String
+    let flowerType: String
+    let marketName: String
+    let avgPrice: Decimal
+    let upperPrice: Decimal
+    let lowerPrice: Decimal
+    let volume: Decimal
+    let transDate: String
+    let trend: String // "up" | "down" | "stable"
+
+    var id: String { "\(flowerName)_\(marketName)_\(transDate)" }
+}
+
 // MARK: - 動態分類（來自 API）
 struct CategoryInfo: Codable, Identifiable {
     let key: String

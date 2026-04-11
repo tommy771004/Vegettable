@@ -87,6 +87,7 @@ builder.Services.AddScoped<IPredictionService, PredictionService>();
 builder.Services.AddScoped<IFishService, FishService>();
 builder.Services.AddScoped<ILivestockService, LivestockService>();
 builder.Services.AddScoped<IOrganicService, OrganicService>();
+builder.Services.AddScoped<IFlowerService, FlowerService>();
 
 // Background service — 定時同步農業部資料 & 檢查價格警示
 builder.Services.AddHostedService<DataFetchBackgroundService>();
@@ -214,7 +215,7 @@ app.MapGet("/health", () => Results.Ok(new
     features = new[]
     {
         "products", "markets", "alerts", "prediction",
-        "seasonal", "recipes", "fish", "livestock", "organic",
+        "seasonal", "recipes", "fish", "livestock", "organic", "flower",
         "rate-limiting", "sqlite"
     },
 }));

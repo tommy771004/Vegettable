@@ -3,6 +3,7 @@ package com.vegettable.app.network
 import com.vegettable.app.model.ApiResponse
 import com.vegettable.app.model.AquaticPrice
 import com.vegettable.app.model.Category
+import com.vegettable.app.model.FlowerPrice
 import com.vegettable.app.model.CreateAlertRequest
 import com.vegettable.app.model.FeedbackRequest
 import com.vegettable.app.model.FeedbackResult
@@ -128,6 +129,19 @@ interface ApiService {
         @Query("cropName") cropName: String?,
         @Query("certType") certType: String?
     ): Call<ApiResponse<MutableList<OrganicPrice?>?>?>?
+
+    // ─── Flower (花卉行情) ───────────────────────────────────
+    @GET("/api/flower")
+    fun getFlowerPrices(
+        @Query("flowerName") flowerName: String?,
+        @Query("market") market: String?
+    ): Call<ApiResponse<MutableList<FlowerPrice?>?>?>?
+
+    @GET("/api/flower/{marketName}/prices")
+    fun getFlowerPricesByMarket(
+        @Path("marketName") marketName: String?,
+        @Query("flowerName") flowerName: String?
+    ): Call<ApiResponse<MutableList<FlowerPrice?>?>?>?
 
     // ─── Feedback ────────────────────────────────────────────
     @POST("/api/feedback")

@@ -29,6 +29,12 @@ struct MainTabView: View {
                     Text("有機")
                 }
 
+            FlowerView()
+                .tabItem {
+                    Image(systemName: "camera.macro")
+                    Text("花卉")
+                }
+
             SearchView()
                 .tabItem {
                     Image(systemName: "magnifyingglass")
