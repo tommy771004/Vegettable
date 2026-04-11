@@ -133,9 +133,9 @@ struct MapListView: View {
             }
         } catch {
             await MainActor.run {
-                // 失敗時 fallback 到靜態資料
                 markets = MarketLocation.all
                 isLoading = false
+                errorMessage = "市場資料載入失敗，目前顯示預設資料（座標可能不是最新）"
                 logger.warning("市場 API 載入失敗，使用靜態資料: \(error.localizedDescription)")
             }
         }

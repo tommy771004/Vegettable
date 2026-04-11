@@ -12,6 +12,8 @@ struct DetailView: View {
     @State private var recipes: [Recipe] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var predictionFailed = false
+    @State private var recipesFailed = false
     @State private var showAlertSheet = false
     private let logger = LoggerManager.shared
 
@@ -47,11 +49,15 @@ struct DetailView: View {
                         // AI 預測
                         if let pred = prediction {
                             predictionCard(pred)
+                        } else if predictionFailed {
+                            sectionErrorView(icon: "brain", text: "價格預測暫時無法使用")
                         }
 
                         // 食譜
                         if !recipes.isEmpty {
                             recipesCard
+                        } else if recipesFailed {
+                            sectionErrorView(icon: "fork.knife", text: "食譜資料暫時無法載入")
                         }
                     }
                     .padding(.horizontal)
@@ -237,6 +243,11 @@ struct DetailView: View {
                         }
                     }
                     .frame(height: 160)
+                    .accessibilityLabel({
+                        let values = prices.map { "\($0.0): \(PriceUtils.formatPrice($0.1)) 元" }.joined(separator: "，")
+                        return "\(title)。\(values)"
+                    }())
+                    .accessibilityHint("顯示 \(prices.count) 筆價格資料的折線圖")
                 }
             }
             .padding(16)
@@ -298,6 +309,20 @@ struct DetailView: View {
         }
     }
 
+    // MARK: - 區段錯誤提示
+    private func sectionErrorView(icon: String, text: String) -> some View {
+        GlassCard {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .foregroundColor(AppColors.textTertiary)
+                Text(text)
+                    .font(.caption)
+                    .foregroundColor(AppColors.textTertiary)
+            }
+            .padding(16)
+        }
+    }
+
     // MARK: - 載入資料
     private func loadDetail() {
         isLoading = true
@@ -307,29 +332,31 @@ struct DetailView: View {
         Task {
             do {
                 async let detailTask = ApiClient.shared.fetchProductDetail(cropName: cropName)
-                async let predTask: PricePrediction? = {
+                async let predTask: (PricePrediction?, Bool) = {
                     do {
-                        return try await ApiClient.shared.fetchPrediction(cropName: cropName)
+                        return (try await ApiClient.shared.fetchPrediction(cropName: cropName), false)
                     } catch {
                         logger.log("取得預測失敗: \(error.localizedDescription)", level: .warning)
-                        return nil
+                        return (nil, true)
                     }
                 }()
-                async let recipesTask: [Recipe] = {
+                async let recipesTask: ([Recipe], Bool) = {
                     do {
-                        return try await ApiClient.shared.fetchRecipes(cropName: cropName)
+                        return (try await ApiClient.shared.fetchRecipes(cropName: cropName), false)
                     } catch {
                         logger.log("取得食譜失敗: \(error.localizedDescription)", level: .warning)
-                        return []
+                        return ([], true)
                     }
                 }()
 
-                let (d, p, r) = await (try detailTask, predTask, recipesTask)
+                let (d, (p, pFailed), (r, rFailed)) = await (try detailTask, predTask, recipesTask)
 
                 await MainActor.run {
                     detail = d
                     prediction = p
+                    predictionFailed = pFailed
                     recipes = r
+                    recipesFailed = rFailed
                     isLoading = false
                     logger.log("產品詳情載入成功", level: .debug)
                 }

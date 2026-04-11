@@ -9,6 +9,7 @@ struct HomeView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showOfflineMode = false
+    @State private var loadTask: Task<Void, Never>?
     private let logger = LoggerManager.shared
 
     var body: some View {
@@ -133,9 +134,13 @@ struct HomeView: View {
         errorMessage = nil
         logger.log("載入產品: 分類 = \(selectedCategory.label)", level: .info)
 
-        Task {
+        // 取消上一個尚未完成的請求，避免競態條件
+        loadTask?.cancel()
+        let requestedCategory = selectedCategory
+        loadTask = Task {
             do {
-                let result = try await ApiClient.shared.fetchProducts(category: selectedCategory.apiValue)
+                let result = try await ApiClient.shared.fetchProducts(category: requestedCategory.apiValue)
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
                     products = result
                     updateFilteredProducts()
@@ -143,6 +148,7 @@ struct HomeView: View {
                     settings.cacheProducts(result)
                 }
             } catch {
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
                     isLoading = false
                     logger.log("載入失敗: \(error.localizedDescription)", level: .error)

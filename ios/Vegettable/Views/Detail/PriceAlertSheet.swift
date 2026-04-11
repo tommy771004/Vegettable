@@ -31,10 +31,14 @@ struct PriceAlertSheet: View {
         Double(targetPriceText.trimmingCharacters(in: .whitespaces))
     }
 
-    private var isFormValid: Bool {
-        if let price = targetPrice, price > 0 { return true }
-        return false
+    private var priceValidationError: String? {
+        guard let price = targetPrice else { return "請輸入數字" }
+        if price <= 0 { return "價格必須大於 0" }
+        if price > 99999 { return "價格不得超過 99,999 元" }
+        return nil
     }
+
+    private var isFormValid: Bool { priceValidationError == nil && !targetPriceText.isEmpty }
 
     var body: some View {
         NavigationStack {
@@ -101,7 +105,14 @@ struct PriceAlertSheet: View {
                                         .foregroundColor(AppColors.textTertiary)
                                 }
 
-                                // 錯誤 / 成功訊息
+                                // 即時驗證提示
+                                if !targetPriceText.isEmpty, let validErr = priceValidationError {
+                                    Label(validErr, systemImage: "exclamationmark.triangle.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                }
+
+                                // API 錯誤 / 成功訊息
                                 if let err = errorMessage {
                                     Label(err, systemImage: "exclamationmark.triangle.fill")
                                         .font(.caption)

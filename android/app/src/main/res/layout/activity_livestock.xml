@@ -91,6 +91,16 @@
                 android:clipToPadding="false"
                 android:visibility="gone" />
 
+            <TextView
+                android:id="@+id/tv_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="找不到符合的畜產品"
+                android:textSize="15sp"
+                android:textColor="@color/text_secondary"
+                android:visibility="gone" />
+
             <LinearLayout
                 android:id="@+id/layout_error"
                 android:layout_width="wrap_content"
