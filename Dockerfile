@@ -4,7 +4,7 @@ WORKDIR /src
 
 # 先只複製 csproj 並還原相依套件 (利用 Docker 快取機制加速下次建置)
 COPY ["api/VegettableApi/VegettableApi.csproj", "VegettableApi/"]
-RUN dotnet restore "api/VegettableApi/VegettableApi.csproj"
+RUN dotnet restore "VegettableApi/VegettableApi.csproj"
 
 # 複製所有原始碼進去並編譯
 COPY . .
