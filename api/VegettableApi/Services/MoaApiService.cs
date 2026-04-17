@@ -209,7 +209,7 @@ public class MoaApiService : IMoaApiService
         _logger.LogInformation("Fetching MOA: {Url}", url);
 
         // 請求去重 — 相同 key 只發一次 HTTP
-        return await _inflightRequests.GetOrAdd(cacheKey, async _ =>
+        return await _inflightRequests.GetOrAdd(cacheKey, async _key =>
         {
             try
             {
