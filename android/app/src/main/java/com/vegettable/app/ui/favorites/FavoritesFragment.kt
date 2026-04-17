@@ -128,18 +128,16 @@ class FavoritesFragment : Fragment(), ProductAdapter.OnItemClickListener {
     }
 
     override fun onItemClick(product: ProductSummary?) {
-        product?.let {
-            val intent = Intent(requireContext(), DetailActivity::class.java)
-            intent.putExtra("cropName", it.cropName)
-            intent.putExtra("cropCode", it.cropCode)
-            startActivity(intent)
-        }
+        val p = product ?: return
+        val intent = Intent(requireContext(), DetailActivity::class.java)
+        intent.putExtra("cropName", p.cropName)
+        intent.putExtra("cropCode", p.cropCode)
+        startActivity(intent)
     }
 
     override fun onFavoriteClick(product: ProductSummary?) {
-        product?.let {
-            prefs!!.toggleFavorite(it.cropCode)
-            loadFavorites()
-        }
+        val code = product?.cropCode ?: return
+        prefs?.toggleFavorite(code)
+        loadFavorites()
     }
 }

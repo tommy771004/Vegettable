@@ -76,7 +76,8 @@ class WeatherActivity : AppCompatActivity() {
         mapView.controller.setZoom(8.0)
         mapView.controller.setCenter(GeoPoint(23.6, 120.9))
 
-        swipeRefresh.setColorSchemeColor(getColor(R.color.primary))
+        swipeRefresh.setColorSchemeColors(getColor(R.color.primary))
+        swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.surface)
         swipeRefresh.setOnRefreshListener { loadData() }
 
         findViewById<View>(R.id.btn_retry).setOnClickListener { loadData() }

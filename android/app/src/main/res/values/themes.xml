@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Liquid Glass 主題 (iOS 26 / visionOS 風格) -->
-    <style name="Theme.Vegettable" parent="Theme.Material3.Light.NoActionBar">
+    <!-- Liquid Glass 主題 (iOS 26 / visionOS 風格) — DayNight 自動切換 -->
+    <style name="Theme.Vegettable" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryContainer">@color/primary_light</item>
         <item name="colorOnPrimary">@android:color/white</item>
         <item name="colorSecondary">@color/primary_light</item>
         <item name="android:colorBackground">@color/background</item>
+        <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>

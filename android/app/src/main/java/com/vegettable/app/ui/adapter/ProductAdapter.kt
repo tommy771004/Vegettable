@@ -14,7 +14,7 @@ import com.vegettable.app.util.PriceUtils
 
 class ProductAdapter(
     private val listener: OnItemClickListener,
-    private var favorites: MutableSet<String?>?
+    private var favorites: Set<String> = emptySet()
 ) : RecyclerView.Adapter<ProductAdapter.ViewHolder?>() {
     interface OnItemClickListener {
         fun onItemClick(product: ProductSummary?)
@@ -38,7 +38,7 @@ class ProductAdapter(
         diff.dispatchUpdatesTo(this)
     }
 
-    fun setFavorites(favorites: MutableSet<String?>?) {
+    fun setFavorites(favorites: Set<String>) {
         this.favorites = favorites
         notifyDataSetChanged()
     }
@@ -128,7 +128,7 @@ class ProductAdapter(
             tvLevel.background = bg
 
             // 收藏
-            val isFav = favorites != null && favorites!!.contains(p.cropCode)
+            val isFav = p.cropCode != null && favorites.contains(p.cropCode)
             btnFav.setImageResource(
                 if (isFav) R.drawable.ic_favorite_on else R.drawable.ic_favorite_off
             )

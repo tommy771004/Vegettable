@@ -60,7 +60,8 @@ class FlowerActivity : AppCompatActivity() {
         rvSkeleton.layoutManager = LinearLayoutManager(this)
         rvSkeleton.adapter = SkeletonAdapter(8)
 
-        swipeRefresh.setColorSchemeColor(getColor(R.color.primary))
+        swipeRefresh.setColorSchemeColors(getColor(R.color.primary))
+        swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.surface)
         swipeRefresh.setOnRefreshListener { loadData() }
 
         findViewById<View>(R.id.btn_retry).setOnClickListener { loadData() }

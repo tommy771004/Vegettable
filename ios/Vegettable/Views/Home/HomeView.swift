@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct HomeView: View {
     @EnvironmentObject var settings: SettingsManager
@@ -172,15 +173,34 @@ struct CategoryChip: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            let g = UISelectionFeedbackGenerator()
+            g.selectionChanged()
+            action()
+        }) {
             Text(label)
                 .font(.subheadline)
                 .fontWeight(isSelected ? .semibold : .regular)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(isSelected ? AppColors.primary : AppColors.glassBg)
+                .background(
+                    Group {
+                        if isSelected {
+                            AppColors.primary
+                        } else {
+                            AppColors.glassBg
+                        }
+                    }
+                )
                 .foregroundColor(isSelected ? .white : AppColors.textPrimary)
                 .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(isSelected ? Color.clear : AppColors.textTertiary.opacity(0.2), lineWidth: 0.5)
+                )
+                .animation(.easeInOut(duration: 0.18), value: isSelected)
         }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

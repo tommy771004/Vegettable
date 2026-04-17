@@ -28,6 +28,20 @@ struct DetailView: View {
             } else if let detail = detail {
                 ScrollView {
                     VStack(spacing: 12) {
+                        // 離線提示
+                        if !networkMonitor.isConnected {
+                            HStack(spacing: 6) {
+                                Image(systemName: "wifi.slash")
+                                Text("目前為離線模式，資料可能非最新")
+                            }
+                            .font(.caption)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 12)
+                            .background(Color.orange.opacity(0.12))
+                            .foregroundColor(.orange)
+                            .clipShape(Capsule())
+                        }
+
                         // 別名
                         if !detail.aliases.isEmpty {
                             Text("又稱：" + detail.aliases.joined(separator: "、"))
@@ -50,19 +64,24 @@ struct DetailView: View {
                         if let pred = prediction {
                             predictionCard(pred)
                         } else if predictionFailed {
-                            sectionErrorView(icon: "brain", text: "價格預測暫時無法使用")
+                            sectionErrorView(icon: "brain",
+                                             text: "價格預測暫時無法使用",
+                                             retry: { retryPrediction() })
                         }
 
                         // 食譜
                         if !recipes.isEmpty {
                             recipesCard
                         } else if recipesFailed {
-                            sectionErrorView(icon: "fork.knife", text: "食譜資料暫時無法載入")
+                            sectionErrorView(icon: "fork.knife",
+                                             text: "食譜資料暫時無法載入",
+                                             retry: { retryRecipes() })
                         }
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 24)
                 }
+                .refreshable { await reloadAsync() }
             } else if let error = errorMessage {
                 VStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle")
@@ -309,8 +328,8 @@ struct DetailView: View {
         }
     }
 
-    // MARK: - 區段錯誤提示
-    private func sectionErrorView(icon: String, text: String) -> some View {
+    // MARK: - 區段錯誤提示（含重試）
+    private func sectionErrorView(icon: String, text: String, retry: (() -> Void)? = nil) -> some View {
         GlassCard {
             HStack(spacing: 10) {
                 Image(systemName: icon)
@@ -318,9 +337,56 @@ struct DetailView: View {
                 Text(text)
                     .font(.caption)
                     .foregroundColor(AppColors.textTertiary)
+                Spacer()
+                if let retry = retry {
+                    Button(action: retry) {
+                        Label("重試", systemImage: "arrow.clockwise")
+                            .font(.caption2)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                    .tint(AppColors.primary)
+                }
             }
             .padding(16)
         }
+    }
+
+    // MARK: - 局部重試
+    private func retryPrediction() {
+        predictionFailed = false
+        Task {
+            do {
+                let p = try await ApiClient.shared.fetchPrediction(cropName: cropName)
+                await MainActor.run { prediction = p }
+            } catch {
+                await MainActor.run {
+                    predictionFailed = true
+                    logger.log("重試預測失敗: \(error.localizedDescription)", level: .warning)
+                }
+            }
+        }
+    }
+
+    private func retryRecipes() {
+        recipesFailed = false
+        Task {
+            do {
+                let r = try await ApiClient.shared.fetchRecipes(cropName: cropName)
+                await MainActor.run { recipes = r }
+            } catch {
+                await MainActor.run {
+                    recipesFailed = true
+                    logger.log("重試食譜失敗: \(error.localizedDescription)", level: .warning)
+                }
+            }
+        }
+    }
+
+    private func reloadAsync() async {
+        loadDetail()
+        // 讓下拉動畫有短暫停留後再隱藏
+        try? await Task.sleep(nanoseconds: 400_000_000)
     }
 
     // MARK: - 載入資料
