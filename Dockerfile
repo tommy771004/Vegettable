@@ -4,8 +4,8 @@ WORKDIR /src
 
 # 先只複製 csproj 並還原相依套件 (利用 Docker 快取機制加速下次建置)
 # 支援從上層目錄建置，因此路徑使用 "VegettableApi/VegettableApi.csproj"
-COPY ["Vegettable/api/VegettableApi/VegettableApi.csproj", "VegettableApi/"]
-RUN dotnet restore "Vegettable/api/VegettableApi/VegettableApi.csproj"
+COPY ["api/VegettableApi/VegettableApi.csproj", "VegettableApi/"]
+RUN dotnet restore "api/VegettableApi/VegettableApi.csproj"
 
 # 複製所有原始碼並編譯（從 build context 複製整個 repo）
 COPY . .
