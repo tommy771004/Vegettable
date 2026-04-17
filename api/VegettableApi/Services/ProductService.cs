@@ -339,7 +339,8 @@ public class ProductService : IProductService
         {
             var cropName = group.Key;
             var items = group.ToList();
-            var cropCode = items.First().CropCode;
+            if (items.Count == 0) continue;
+            var cropCode = items[0].CropCode ?? string.Empty;
 
             var avgPrice = Math.Round(items.Average(i => i.AvgPrice), 1);
             var totalVol = Math.Round(items.Sum(i => i.Volume), 0);

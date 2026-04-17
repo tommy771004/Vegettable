@@ -213,19 +213,20 @@ public class MoaApiService : IMoaApiService
         {
             try
             {
-                var response = await _httpClient.GetAsync(url);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                var response = await _httpClient.GetAsync(url, cts.Token);
                 response.EnsureSuccessStatusCode();
-                return await response.Content.ReadAsStringAsync();
+                return await response.Content.ReadAsStringAsync(cts.Token);
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogWarning(ex, "MOA request timed out: {Endpoint}", endpoint);
+                return string.Empty;
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error fetching MOA endpoint: {Endpoint}", endpoint);
-                throw;
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogError(ex, "JSON error parsing MOA response from: {Endpoint}", endpoint);
-                throw;
+                return string.Empty;
             }
             finally
             {
@@ -234,17 +235,29 @@ public class MoaApiService : IMoaApiService
         });
     }
 
-    private static List<T> Deserialize<T>(string json)
+    private List<T> Deserialize<T>(string json)
     {
-        return JsonSerializer.Deserialize<List<T>>(json) ?? new List<T>();
+        if (string.IsNullOrWhiteSpace(json)) return new List<T>();
+        try
+        {
+            return JsonSerializer.Deserialize<List<T>>(json) ?? new List<T>();
+        }
+        catch (JsonException ex)
+        {
+            var preview = json.Length > 200 ? json[..200] + "..." : json;
+            _logger.LogError(ex, "JSON parse failed for {Type}. Preview: {Preview}", typeof(T).Name, preview);
+            return new List<T>();
+        }
     }
 
     private void CacheResult<T>(string key, List<T> data, int minutes)
     {
+        // 空結果使用較短 TTL（1 分鐘），避免因暫時性錯誤長時間回傳空資料
+        var ttl = data.Count == 0 ? Math.Min(1, minutes) : minutes;
         _cache.Set(key, data, new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromMinutes(minutes))
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(ttl))
             .SetSize(1));
-        _logger.LogInformation("Cached {Count} records, key={Key}", data.Count, key);
+        _logger.LogInformation("Cached {Count} records, key={Key}, ttl={Ttl}m", data.Count, key, ttl);
     }
 
     /// <summary>西元年轉民國年 (YYY.MM.DD)</summary>
