@@ -24,3 +24,4 @@ COPY --from=build /app/publish .
 
 # 設定容器啟動時執行的指令
 ENTRYPOINT ["dotnet", "VegettableApi.dll"]
+
