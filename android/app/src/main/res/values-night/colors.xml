@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Liquid Glass 主色調（深色模式：略提亮以保證對比） -->
+    <color name="primary">#43A047</color>
+    <color name="primary_light">#66BB6A</color>
+    <color name="primary_dark">#2E7D32</color>
+
+    <!-- Liquid Glass 背景 -->
+    <color name="background">#0F1419</color>
+    <color name="background_end">#121A20</color>
+    <color name="surface">#1A2129</color>
+
+    <!-- 文字 -->
+    <color name="text_primary">#E6EEF5</color>
+    <color name="text_secondary">#9DB0C0</color>
+    <color name="text_tertiary">#6C7D8D</color>
+
+    <!-- 玻璃效果（深色半透明） -->
+    <color name="divider">#24FFFFFF</color>
+    <color name="glass_bg">#1AFFFFFF</color>
+    <color name="glass_highlight">#33FFFFFF</color>
+    <color name="glass_stroke">#30FFFFFF</color>
+
+    <!-- 價格等級（深色版偏亮） -->
+    <color name="price_very_cheap">#FF6E64</color>
+    <color name="price_cheap">#FF9E7D</color>
+    <color name="price_normal">#64B5F6</color>
+    <color name="price_expensive">#5C9AE8</color>
+
+    <!-- 趨勢 -->
+    <color name="trend_up">#FF6E64</color>
+    <color name="trend_down">#66BB6A</color>
+    <color name="trend_stable">#9E9E9E</color>
+
+    <!-- 分類 -->
+    <color name="cat_vegetable">#66BB6A</color>
+    <color name="cat_fruit">#FFB74D</color>
+    <color name="cat_fish">#64B5F6</color>
+    <color name="cat_meat">#E57373</color>
+    <color name="cat_flower">#F06292</color>
+    <color name="cat_rice">#A1887F</color>
+
+    <!-- 浮動 Tab Bar -->
+    <color name="tab_bar_bg">#B31A2129</color>
+    <color name="tab_bar_indicator">#3343A047</color>
+
+    <!-- 核心薄荷色（深色版） -->
+    <color name="liquid_glass_green_base">#0B1F12</color>
+    <color name="liquid_glass_green_tint">#2E7D32</color>
+
+    <!-- Liquid Glass 材質顏色 (半透明) -->
+    <color name="glass_white_alpha_30">#26FFFFFF</color>
+    <color name="glass_green_alpha_20">#3366BB6A</color>
+</resources>

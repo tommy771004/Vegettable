@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct GlassCard<Content: View>: View {
     let content: Content
@@ -76,10 +77,18 @@ struct ProductRow: View {
                     .font(.caption2)
                     .foregroundColor(AppColors.textTertiary)
 
-                Button(action: onFavorite) {
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    onFavorite()
+                }) {
                     Image(systemName: isFavorite ? "heart.fill" : "heart")
-                        .foregroundColor(isFavorite ? .red : .gray)
+                        .foregroundColor(isFavorite ? .red : AppColors.textTertiary)
+                        .scaleEffect(isFavorite ? 1.1 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.5), value: isFavorite)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isFavorite ? "取消收藏 \(product.cropName)" : "收藏 \(product.cropName)")
             }
         }
         .padding(16)

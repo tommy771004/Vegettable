@@ -67,7 +67,7 @@ class SearchFragment : Fragment(), ProductAdapter.OnItemClickListener {
         tvClearHistory = view.findViewById(R.id.tv_clear_history)
 
         rvResults?.layoutManager = LinearLayoutManager(requireContext())
-        adapter = ProductAdapter(this, prefs?.favorites ?: mutableSetOf())
+        adapter = ProductAdapter(this, prefs?.favorites ?: emptySet())
         adapter?.setPriceUnit(prefs?.priceUnit)
         rvResults?.adapter = adapter
 
@@ -192,11 +192,10 @@ class SearchFragment : Fragment(), ProductAdapter.OnItemClickListener {
     }
 
     override fun onFavoriteClick(product: ProductSummary?) {
-        product?.let {
-            prefs?.toggleFavorite(it.cropCode)
-            adapter?.setFavorites(prefs?.favorites ?: mutableSetOf())
-            adapter?.notifyDataSetChanged()
-        }
+        val code = product?.cropCode ?: return
+        prefs?.toggleFavorite(code)
+        adapter?.setFavorites(prefs?.favorites ?: emptySet())
+        adapter?.notifyDataSetChanged()
     }
 
     override fun onDestroyView() {

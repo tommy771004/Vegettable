@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CompoundButton
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
@@ -60,6 +61,31 @@ class SettingsFragment : Fragment() {
         switchRetail.setOnCheckedChangeListener(CompoundButton.OnCheckedChangeListener { buttonView: CompoundButton?, isChecked: Boolean ->
             prefs!!.isShowRetailPrice = isChecked
         })
+
+        // ─── 外觀（明暗模式） ─────────────────────────────────
+        val toggleTheme = view.findViewById<MaterialButtonToggleGroup>(R.id.toggle_theme)
+        when (prefs!!.darkMode) {
+            "light" -> toggleTheme.check(R.id.btn_theme_light)
+            "dark" -> toggleTheme.check(R.id.btn_theme_dark)
+            else -> toggleTheme.check(R.id.btn_theme_system)
+        }
+        toggleTheme.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val mode = when (checkedId) {
+                R.id.btn_theme_light -> "light"
+                R.id.btn_theme_dark -> "dark"
+                else -> "system"
+            }
+            if (mode == prefs!!.darkMode) return@addOnButtonCheckedListener
+            prefs!!.darkMode = mode
+            AppCompatDelegate.setDefaultNightMode(
+                when (mode) {
+                    "light" -> AppCompatDelegate.MODE_NIGHT_NO
+                    "dark" -> AppCompatDelegate.MODE_NIGHT_YES
+                    else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+                }
+            )
+        }
 
         // ─── 快捷功能 ─────────────────────────────────────────
         view.findViewById<View?>(R.id.btn_seasonal)

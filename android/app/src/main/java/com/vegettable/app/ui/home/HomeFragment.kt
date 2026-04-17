@@ -188,12 +188,11 @@ class HomeFragment : Fragment(), ProductAdapter.OnItemClickListener {
     }
 
     override fun onFavoriteClick(product: ProductSummary?) {
-        product?.let {
-            prefs!!.toggleFavorite(it.cropCode)
-            // 更新 Adapter 中的收藏狀態
-            adapter!!.setFavorites(prefs!!.favorites)
-            adapter!!.notifyDataSetChanged()
-        }
+        val code = product?.cropCode ?: return
+        prefs?.toggleFavorite(code)
+        // 更新 Adapter 中的收藏狀態
+        adapter?.setFavorites(prefs?.favorites ?: emptySet())
+        adapter?.notifyDataSetChanged()
     }
 
     override fun onResume() {
