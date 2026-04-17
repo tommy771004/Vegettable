@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SearchView: View {
     @EnvironmentObject var settings: SettingsManager
@@ -99,7 +100,18 @@ struct SearchView: View {
                                 .foregroundColor(AppColors.textSecondary)
                         }
                         Spacer()
-                    } else if !searchHistory.isEmpty {
+                    } else if searchHistory.isEmpty {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            Image(systemName: "magnifyingglass.circle")
+                                .font(.system(size: 48))
+                                .foregroundColor(AppColors.textTertiary.opacity(0.6))
+                            Text("輸入關鍵字開始搜尋")
+                                .font(.subheadline)
+                                .foregroundColor(AppColors.textSecondary)
+                        }
+                        Spacer()
+                    } else {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Text("搜尋歷史")
@@ -116,17 +128,27 @@ struct SearchView: View {
                             .padding(.horizontal)
 
                             ForEach(searchHistory.prefix(5), id: \.self) { term in
-                                Button(action: { keyword = term; debounceSearch() }) {
+                                Button(action: {
+                                    let g = UISelectionFeedbackGenerator()
+                                    g.selectionChanged()
+                                    keyword = term
+                                    debounceSearch()
+                                }) {
                                     HStack {
                                         Image(systemName: "clock")
                                             .foregroundColor(AppColors.textTertiary)
                                         Text(term)
                                             .foregroundColor(AppColors.textPrimary)
                                         Spacer()
+                                        Image(systemName: "arrow.up.left")
+                                            .font(.caption)
+                                            .foregroundColor(AppColors.textTertiary)
                                     }
                                     .padding(.horizontal)
-                                    .padding(.vertical, 8)
+                                    .padding(.vertical, 10)
                                 }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("重新搜尋 \(term)")
                             }
                         }
                         .padding(.top, 12)

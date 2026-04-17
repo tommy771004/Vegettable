@@ -43,8 +43,15 @@ public class AlertsController : ControllerBase
             return BadRequest(ApiResponse<object>.Fail("deviceToken 格式無效"));
         if (string.IsNullOrWhiteSpace(request.CropName))
             return BadRequest(ApiResponse<object>.Fail("請提供作物名稱"));
+        if (request.CropName.Length > 50)
+            return BadRequest(ApiResponse<object>.Fail("作物名稱過長（最多 50 字）"));
         if (request.TargetPrice <= 0)
             return BadRequest(ApiResponse<object>.Fail("目標價格必須大於 0"));
+        if (request.TargetPrice > 100000)
+            return BadRequest(ApiResponse<object>.Fail("目標價格超出合理範圍"));
+        if (!string.Equals(request.Condition, "above", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(request.Condition, "below", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(ApiResponse<object>.Fail("條件必須為 above 或 below"));
 
         var alert = await _alertService.CreateAlertAsync(request);
         return Created($"/api/alerts/{alert.Id}", ApiResponse<PriceAlertDto>.Ok(alert));
@@ -72,7 +79,7 @@ public class AlertsController : ControllerBase
 
         var result = await _alertService.DeleteAlertAsync(id, deviceToken);
         return result
-            ? Ok(new { success = true, message = "警示已刪除", timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() })
+            ? Ok(ApiResponse<object>.Ok(new { }, "警示已刪除"))
             : NotFound(ApiResponse<object>.Fail("找不到該警示"));
     }
 
@@ -93,7 +100,7 @@ public class AlertsController : ControllerBase
 
         var result = await _alertService.ToggleAlertAsync(id, deviceToken);
         return result
-            ? Ok(new { success = true, message = "警示狀態已切換", timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() })
+            ? Ok(ApiResponse<object>.Ok(new { }, "警示狀態已切換"))
             : NotFound(ApiResponse<object>.Fail("找不到該警示"));
     }
 }
