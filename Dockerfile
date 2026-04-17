@@ -4,11 +4,11 @@ WORKDIR /src
 
 # 先只複製 csproj 並還原相依套件 (利用 Docker 快取機制加速下次建置)
 COPY ["api/VegettableApi/VegettableApi.csproj", "VegettableApi/"]
-RUN dotnet restore "VegettableApi/VegettableApi.csproj"
+RUN dotnet restore "api/VegettableApi/VegettableApi.csproj"
 
 # 複製所有原始碼進去並編譯
 COPY . .
-WORKDIR "/api/VegettableApi"
+WORKDIR "/src/VegettableApi"
 RUN dotnet publish "VegettableApi.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # 2. 建立執行環境 (使用較小的 ASP.NET 執行時期)
